@@ -1,0 +1,19 @@
+{
+  "name": "@agentos/api",
+  "version": "0.0.0",
+  "private": true,
+  "main": "./dist/main.js",
+  "dependencies": {
+    "@agentos/access": "workspace:*",
+    "@agentos/contracts": "workspace:*",
+    "@agentos/event-backbone": "workspace:*",
+    "@agentos/identifier": "workspace:*",
+    "@agentos/identity": "workspace:*",
+    "@agentos/observability": "workspace:*",
+    "@agentos/organization": "workspace:*",
+    "@agentos/persistence-kernel": "workspace:*",
+    "@agentos/result-errors": "workspace:*",
+    "@agentos/tenant-context": "workspace:*",
+    "@agentos/workspace": "workspace:*"
+  }
+}

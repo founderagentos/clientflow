@@ -1,0 +1,30 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+build/
+*.tsbuildinfo
+
+# nx
+.nx/cache
+.nx/workspace-data
+
+# test
+coverage/
+
+# env & secrets (never commit)
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# editor / os
+.DS_Store
+.idea/
+*.log
+
+# archives
+agentos.zip
+*.zip

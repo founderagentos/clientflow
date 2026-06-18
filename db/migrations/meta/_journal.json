@@ -1,0 +1,41 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1781727979119,
+      "tag": "0000_light_purifiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781728050516,
+      "tag": "0001_cross_module_foreign_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1781728515045,
+      "tag": "0002_exotic_kree",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1781755544883,
+      "tag": "0003_created_by_updated_by_foreign_keys",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1781758018876,
+      "tag": "0004_curious_stardust",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+# Local development dependencies for the AgentOS kernel (CLAUDE.md §6 Phase 0).
+# Phase 1 introduces a dedicated NOSUPERUSER app role with FORCE ROW LEVEL SECURITY;
+# the default superuser here is for local convenience only.
+services:
+  postgres:
+    image: postgres:18
+    environment:
+      POSTGRES_USER: agentos
+      POSTGRES_PASSWORD: agentos
+      POSTGRES_DB: agentos
+    ports:
+      - '5432:5432'
+    volumes:
+      # postgres:18+ images expect a single mount at /var/lib/postgresql (PGDATA defaults to
+      # /var/lib/postgresql/18/docker beneath it) — mounting directly at .../data is rejected.
+      - agentos_pg:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U agentos -d agentos']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - '6379:6379'
+    volumes:
+      - agentos_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  agentos_pg:
+  agentos_redis:

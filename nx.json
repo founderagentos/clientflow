@@ -1,0 +1,36 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "sync": {
+    "applyChanges": false,
+    "disabledTaskSyncGenerators": ["@nx/js:typescript-sync"]
+  },
+  "namedInputs": {
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
+    "production": [
+      "default",
+      "!{projectRoot}/**/*.spec.ts",
+      "!{projectRoot}/**/*.test.ts",
+      "!{projectRoot}/vitest.config.ts",
+      "!{projectRoot}/tsconfig.spec.json"
+    ],
+    "sharedGlobals": []
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": ["^build"],
+      "inputs": ["production", "^production"],
+      "cache": true
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "cache": true
+    },
+    "lint": {
+      "cache": true
+    }
+  }
+}

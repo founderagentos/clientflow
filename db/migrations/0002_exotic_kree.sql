@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "roles_system_scope_name_key" ON "roles" USING btree ("scope","name") WHERE organization_id is null and deleted_at is null;
