@@ -19,6 +19,13 @@ export class PrincipalsRepository {
     await tx.insert(principals).values({ id, type: 'user', status: 'active', tokenVersion: 0 });
   }
 
+  /** Insert a service-account principal — an AI agent/automation, authorized identically (§3.2). */
+  async insertServiceAccountPrincipal(tx: Tx, id: string): Promise<void> {
+    await tx
+      .insert(principals)
+      .values({ id, type: 'service_account', status: 'active', tokenVersion: 0 });
+  }
+
   async findById(id: string, executor: Executor = this.db): Promise<PrincipalRow | null> {
     const [row] = await executor
       .select({

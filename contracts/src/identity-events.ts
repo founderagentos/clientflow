@@ -12,7 +12,6 @@ export const IdentityEventType = {
   OrganizationProvisioned: 'OrganizationProvisioned',
   WorkspaceCreated: 'WorkspaceCreated',
   OwnerMembershipGranted: 'OwnerMembershipGranted',
-  RoleAssigned: 'RoleAssigned',
   UserAuthenticated: 'UserAuthenticated',
   SessionCreated: 'SessionCreated',
   TokenRefreshed: 'TokenRefreshed',
@@ -52,12 +51,6 @@ export const workspaceCreatedPayload = z.object({
 export const ownerMembershipGrantedPayload = z.object({
   membershipId: z.string(),
   principalId: z.string(),
-});
-
-export const roleAssignedPayload = z.object({
-  membershipId: z.string(),
-  roleId: z.string(),
-  roleName: z.string(),
 });
 
 export const userAuthenticatedPayload = z.object({
@@ -108,7 +101,6 @@ export type UserRegisteredPayload = z.infer<typeof userRegisteredPayload>;
 export type OrganizationProvisionedPayload = z.infer<typeof organizationProvisionedPayload>;
 export type WorkspaceCreatedPayload = z.infer<typeof workspaceCreatedPayload>;
 export type OwnerMembershipGrantedPayload = z.infer<typeof ownerMembershipGrantedPayload>;
-export type RoleAssignedPayload = z.infer<typeof roleAssignedPayload>;
 export type UserAuthenticatedPayload = z.infer<typeof userAuthenticatedPayload>;
 export type SessionCreatedPayload = z.infer<typeof sessionCreatedPayload>;
 export type TokenRefreshedPayload = z.infer<typeof tokenRefreshedPayload>;

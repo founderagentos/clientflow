@@ -17,6 +17,11 @@ import { UsersRepository } from './infrastructure/users.repository';
 import { IdentitiesRepository } from './infrastructure/identities.repository';
 import { SessionsRepository } from './infrastructure/sessions.repository';
 import { AuthMembershipRepository } from './infrastructure/auth-membership.repository';
+import { ServiceAccountsRepository } from './infrastructure/service-accounts.repository';
+import { ApiKeysRepository } from './infrastructure/api-keys.repository';
+import { ApiKeyLookupRepository } from './infrastructure/api-key-lookup.repository';
+import { ServiceAccountService } from './application/service-account.service';
+import { ApiKeyService } from './application/api-key.service';
 import { SessionIssuer } from './application/session-issuer';
 import { UserRegistrar } from './application/user-registrar';
 import { LoginService } from './application/login.service';
@@ -58,11 +63,16 @@ export class IdentityModule {
         IdentitiesRepository,
         SessionsRepository,
         AuthMembershipRepository,
+        ServiceAccountsRepository,
+        ApiKeysRepository,
+        ApiKeyLookupRepository,
         LoginService,
         RefreshService,
         LogoutService,
         SessionsService,
         UserRegistrar,
+        ServiceAccountService,
+        ApiKeyService,
         AccessTokenGuard,
       ],
       exports: [
@@ -71,6 +81,8 @@ export class IdentityModule {
         AccessTokenService,
         UserRegistrar,
         SessionIssuer,
+        ServiceAccountService,
+        ApiKeyService,
       ],
     };
   }
@@ -84,6 +96,11 @@ export { AccessTokenService } from './infrastructure/ed25519-token-service';
 export type { VerifiedAccessToken } from './infrastructure/ed25519-token-service';
 export { UserRegistrar } from './application/user-registrar';
 export type { RegisteredUser } from './application/user-registrar';
+export { ServiceAccountService } from './application/service-account.service';
+export type { ServiceAccountRow } from './infrastructure/service-accounts.repository';
+export { ApiKeyService } from './application/api-key.service';
+export type { IssuedApiKey, AuthenticatedApiKey } from './application/api-key.service';
+export type { ApiKeyRow } from './infrastructure/api-keys.repository';
 export { SessionIssuer } from './application/session-issuer';
 export type { IssuedTokens, ClientMeta } from './application/session-issuer';
 export type { AuthContext, RequestWithAuth } from './interfaces/auth-context';

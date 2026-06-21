@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { OrganizationModule } from '@agentos/organization';
 import { WorkspaceModule } from '@agentos/workspace';
-import { AccessModule } from '@agentos/access';
 import { IdentityFeature } from '../onboarding/identity.feature';
+import { AccessFeature } from '../access/access.feature';
 import { RequireMembershipGuard } from './require-membership.guard';
 import { OrganizationController } from './organization.controller';
 import { WorkspaceController } from './workspace.controller';
@@ -18,7 +18,7 @@ import { InvitationAcceptanceOrchestrator } from './invitation-acceptance.orches
  * context's public services.
  */
 @Module({
-  imports: [IdentityFeature, OrganizationModule, WorkspaceModule, AccessModule],
+  imports: [IdentityFeature, OrganizationModule, WorkspaceModule, AccessFeature],
   controllers: [
     OrganizationController,
     WorkspaceController,

@@ -7,7 +7,7 @@ import {
   type Database,
   type OutboxPort,
 } from '@agentos/persistence-kernel';
-import { IdentityAggregateType, IdentityEventType } from '@agentos/contracts';
+import { AccessEventType, IdentityAggregateType, IdentityEventType } from '@agentos/contracts';
 import {
   PasswordHasher,
   UserRegistrar,
@@ -150,8 +150,8 @@ export class RegistrationOrchestrator {
           ...base,
           aggregateType: IdentityAggregateType.Membership,
           aggregateId: membershipId,
-          type: IdentityEventType.RoleAssigned,
-          payload: { membershipId, roleId: role.roleId, roleName: role.roleName },
+          type: AccessEventType.RoleAssigned,
+          payload: { membershipId, roleId: role.roleId, principalId, roleName: role.roleName },
         });
         await this.outbox.append(tx, {
           ...base,

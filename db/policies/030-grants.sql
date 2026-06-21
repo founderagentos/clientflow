@@ -24,6 +24,11 @@ GRANT SELECT, INSERT, UPDATE ON
   permissions
 TO app_user;
 
+-- role_permissions and membership_roles are bare junction tables (CLAUDE.md §5) — they carry no
+-- deleted_at, so revoking a grant is a genuine row DELETE, not a soft delete. This is the only
+-- place app_user is permitted to DELETE; RLS still scopes which rows are visible to delete.
+GRANT DELETE ON role_permissions, membership_roles TO app_user;
+
 -- audit_log_entries is true append-only (CLAUDE.md §5): SELECT, INSERT only, never UPDATE.
 GRANT SELECT, INSERT ON audit_log_entries TO app_user;
 

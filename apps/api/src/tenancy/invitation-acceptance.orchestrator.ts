@@ -8,7 +8,7 @@ import {
   type Database,
   type OutboxPort,
 } from '@agentos/persistence-kernel';
-import { IdentityAggregateType, IdentityEventType, TenancyAggregateType, TenancyEventType } from '@agentos/contracts';
+import { AccessEventType, IdentityAggregateType, IdentityEventType, TenancyAggregateType, TenancyEventType } from '@agentos/contracts';
 import {
   PasswordHasher,
   UserRegistrar,
@@ -185,8 +185,8 @@ export class InvitationAcceptanceOrchestrator {
           ...base,
           aggregateType: TenancyAggregateType.Membership,
           aggregateId: membershipId,
-          type: IdentityEventType.RoleAssigned,
-          payload: { membershipId, roleId: role.roleId, roleName: role.roleName },
+          type: AccessEventType.RoleAssigned,
+          payload: { membershipId, roleId: role.roleId, principalId, roleName: role.roleName },
         });
         if (newUser && tokens) {
           await this.outbox.append(tx, {

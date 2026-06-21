@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
 import { AccessTokenService } from '@agentos/identity';
-import { runWithTenantContext, type TenantContext } from '@agentos/tenant-context';
+import { getTenantContext, runWithTenantContext, type TenantContext } from '@agentos/tenant-context';
 
 interface MutableRequest {
   headers: Record<string, unknown>;
@@ -24,6 +24,11 @@ export class TenantContextMiddleware implements NestMiddleware {
   constructor(private readonly tokens: AccessTokenService) {}
 
   async use(req: MutableRequest, _res: unknown, next: () => void): Promise<void> {
+    // An earlier auth middleware (API-key) may have already bound a service-account context.
+    if (getTenantContext()) {
+      next();
+      return;
+    }
     const header = req.headers.authorization;
     const bearer =
       typeof header === 'string' && header.startsWith('Bearer ') ? header.slice(7) : undefined;

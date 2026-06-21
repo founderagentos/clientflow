@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { OrganizationModule } from '@agentos/organization';
 import { WorkspaceModule } from '@agentos/workspace';
-import { AccessModule } from '@agentos/access';
 import { IdentityFeature } from './identity.feature';
+import { AccessFeature } from '../access/access.feature';
 import { RegistrationOrchestrator } from './registration.orchestrator';
 import { RegistrationController } from './registration.controller';
 
@@ -12,7 +12,7 @@ import { RegistrationController } from './registration.controller';
  * them into one atomic registration.
  */
 @Module({
-  imports: [IdentityFeature, OrganizationModule, WorkspaceModule, AccessModule],
+  imports: [IdentityFeature, OrganizationModule, WorkspaceModule, AccessFeature],
   controllers: [RegistrationController],
   providers: [RegistrationOrchestrator],
 })
