@@ -29,6 +29,7 @@ export async function applyPolicies(
     '020-policies.sql',
     '030-grants.sql',
     '040-auth-functions.sql',
+    '041-invitation-functions.sql',
   ];
 
   for (const file of files) {

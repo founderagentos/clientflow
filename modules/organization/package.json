@@ -13,6 +13,7 @@
   "dependencies": {
     "@agentos/contracts": "workspace:*",
     "@agentos/persistence-kernel": "workspace:*",
-    "@agentos/identifier": "workspace:*"
+    "@agentos/identifier": "workspace:*",
+    "@agentos/result-errors": "workspace:*"
   }
 }

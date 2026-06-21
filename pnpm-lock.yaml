@@ -251,6 +251,9 @@ importers:
       '@agentos/persistence-kernel':
         specifier: workspace:*
         version: link:../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../packages/platform/result-errors
 
   modules/workspace:
     dependencies:
@@ -263,6 +266,9 @@ importers:
       '@agentos/persistence-kernel':
         specifier: workspace:*
         version: link:../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../packages/platform/result-errors
 
   packages/platform/identifier:
     dependencies:

@@ -15,6 +15,7 @@ import { TenantContextMiddleware } from './http/tenant-context.middleware';
 import { LoginThrottleInterceptor } from './http/login-throttle.interceptor';
 import { IdentityFeature } from './onboarding/identity.feature';
 import { OnboardingModule } from './onboarding/onboarding.module';
+import { TenancyModule } from './tenancy/tenancy.module';
 
 /**
  * Composition root. Phase 2 wires the auth core: the identity module (login/refresh/logout/
@@ -33,6 +34,7 @@ import { OnboardingModule } from './onboarding/onboarding.module';
     WorkspaceModule,
     AccessModule,
     OnboardingModule,
+    TenancyModule,
     HealthModule,
   ],
   providers: [

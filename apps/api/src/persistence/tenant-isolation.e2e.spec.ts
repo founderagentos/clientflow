@@ -38,6 +38,10 @@ describe('tenant isolation (RLS)', () => {
   const membershipB = '00000000-0000-7000-8000-0000000000db';
   const principalA = '00000000-0000-7000-8000-0000000000ea';
   const principalB = '00000000-0000-7000-8000-0000000000eb';
+  const invitationA = '00000000-0000-7000-8000-0000000000fa';
+  const invitationB = '00000000-0000-7000-8000-0000000000fb';
+  const tokenHashA = 'a'.repeat(64);
+  const tokenHashB = 'b'.repeat(64);
 
   beforeAll(async () => {
     container = await new PostgreSqlContainer('postgres:18').start();
@@ -89,6 +93,9 @@ describe('tenant isolation (RLS)', () => {
       INSERT INTO membership_roles (membership_id, role_id) VALUES
         ('${membershipA}', '${roleA}'),
         ('${membershipB}', '${roleB}');
+      INSERT INTO invitations (id, organization_id, workspace_id, email, role_id, token_hash, expires_at) VALUES
+        ('${invitationA}', '${orgA}', '${workspaceA}', 'a@example.com', '${roleA}', '${tokenHashA}', now() + interval '7 days'),
+        ('${invitationB}', '${orgB}', '${workspaceB}', 'b@example.com', '${roleB}', '${tokenHashB}', now() + interval '7 days');
     `);
 
     const connectionUrl = new URL(container.getConnectionUri());
@@ -165,5 +172,27 @@ describe('tenant isolation (RLS)', () => {
     const rows = await appUserSql`SELECT membership_id, role_id FROM membership_roles`;
     expect(rows).toHaveLength(1);
     expect(rows[0]?.role_id).toBe(roleA);
+  });
+
+  it('isolates invitations to the active organization', async () => {
+    await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    const rows = await appUserSql`SELECT id FROM invitations`;
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.id).toBe(invitationA);
+  });
+
+  it('accept-time lookup resolves an invitation by token hash without widening tenant visibility', async () => {
+    // Org A's context is set, yet the SECURITY DEFINER function still resolves Org B's invitation
+    // — but ONLY because the caller presents B's exact 256-bit token hash. Direct selects remain
+    // org-scoped (previous test). This is the same narrow, audited escape hatch as auth-time
+    // membership resolution (CLAUDE.md §7 gate 1 preserved — possession of the token is the key).
+    await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    const found = await appUserSql`SELECT id, organization_id FROM auth_invitation_by_token_hash(${tokenHashB})`;
+    expect(found).toHaveLength(1);
+    expect(found[0]?.id).toBe(invitationB);
+    expect(found[0]?.organization_id).toBe(orgB);
+
+    const missing = await appUserSql`SELECT id FROM auth_invitation_by_token_hash(${'c'.repeat(64)})`;
+    expect(missing).toHaveLength(0);
   });
 });

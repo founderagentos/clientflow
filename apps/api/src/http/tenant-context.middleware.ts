@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { Injectable, type NestMiddleware } from '@nestjs/common';
 import { AccessTokenService } from '@agentos/identity';
 import { runWithTenantContext, type TenantContext } from '@agentos/tenant-context';
@@ -38,12 +39,15 @@ export class TenantContextMiddleware implements NestMiddleware {
         workspaceId: claims.workspaceId,
         tokenVersion: claims.tokenVersion,
       };
-      const correlationId = req.headers['x-correlation-id'];
+      // Auto-inject a correlation id (§3.20). Honour an upstream gateway's value; otherwise mint
+      // one so every log line and every emitted domain event carries a non-empty correlation id.
+      const header = req.headers['x-correlation-id'];
+      const correlationId = typeof header === 'string' && header.length > 0 ? header : randomUUID();
       const ctx: TenantContext = {
         organizationId: claims.organizationId,
         workspaceId: claims.workspaceId,
         principal: { id: claims.principalId, type: 'user' },
-        correlationId: typeof correlationId === 'string' ? correlationId : '',
+        correlationId,
       };
       runWithTenantContext(ctx, () => next());
     } catch {

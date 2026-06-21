@@ -9,6 +9,11 @@ export interface AssignOwnerRoleInput {
   membershipId: string;
 }
 
+export interface AssignRoleInput {
+  membershipId: string;
+  roleId: string;
+}
+
 export interface AssignedRole {
   roleId: string;
   roleName: string;
@@ -43,5 +48,27 @@ export class RoleAssigner {
 
     await tx.insert(membershipRoles).values({ membershipId: input.membershipId, roleId: owner.id });
     return { roleId: owner.id, roleName: owner.name };
+  }
+
+  /**
+   * Assigns an arbitrary role (by id) to a membership — the general form used when an invited
+   * member joins with their pre-assigned role (CLAUDE.md §6 Phase 3). The role must be visible
+   * under the transaction's tenant context (system role, or one owned by the active org) or the
+   * `membership_roles.role_id` FK rejects it. Returns the resolved role name for the event.
+   */
+  async assignRole(tx: Tx, input: AssignRoleInput): Promise<AssignedRole> {
+    const [role] = await tx
+      .select({ id: roles.id, name: roles.name })
+      .from(roles)
+      .where(and(eq(roles.id, input.roleId), isNull(roles.deletedAt)))
+      .limit(1);
+
+    if (!role) {
+      // RLS hid it (cross-tenant) or it does not exist — never confirm which (§3.8).
+      throw new InternalError('Role is not assignable in this context');
+    }
+
+    await tx.insert(membershipRoles).values({ membershipId: input.membershipId, roleId: role.id });
+    return { roleId: role.id, roleName: role.name };
   }
 }

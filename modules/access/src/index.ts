@@ -15,5 +15,9 @@ import { RoleAssigner } from './application/role-assigner';
 export class AccessModule {}
 
 export { RoleAssigner } from './application/role-assigner';
-export type { AssignOwnerRoleInput, AssignedRole } from './application/role-assigner';
+export type {
+  AssignOwnerRoleInput,
+  AssignRoleInput,
+  AssignedRole,
+} from './application/role-assigner';
 export type { DomainEventEnvelope };
