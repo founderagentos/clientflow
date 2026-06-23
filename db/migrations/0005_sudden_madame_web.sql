@@ -1,0 +1,1 @@
+ALTER TABLE "domain_events" ADD COLUMN "publish_attempts" integer DEFAULT 0 NOT NULL;

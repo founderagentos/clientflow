@@ -13,15 +13,18 @@ import { ProblemDetailsExceptionFilter } from './http/problem-details.filter';
 import { TenantContextMiddleware } from './http/tenant-context.middleware';
 import { ApiKeyAuthMiddleware } from './http/api-key-auth.middleware';
 import { AccessHostModule } from './access/access.module';
+import { AuditHostModule } from './audit/audit.module';
 import { LoginThrottleInterceptor } from './http/login-throttle.interceptor';
 import { IdentityFeature } from './onboarding/identity.feature';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { TenancyModule } from './tenancy/tenancy.module';
 
 /**
- * Composition root. Phase 2 wires the auth core: the identity module (login/refresh/logout/
- * sessions), the cross-context onboarding slice (register), the global outbox, plus the
- * tenant-context middleware and login throttle. Bounded-context modules are imported here.
+ * Composition root. Wires the auth core (identity: login/refresh/logout/sessions), the
+ * cross-context onboarding slice (register), tenancy, access, and — Phase 5 — the event backbone
+ * (the global outbox plus the MessageBus + relay, provided by EventBackboneModule) and the audit
+ * slice (the event-driven append-only writer + the guarded query API). Bounded-context modules are
+ * imported here; the tenant-context middleware and login throttle wrap every route.
  */
 @Module({
   imports: [
@@ -34,6 +37,7 @@ import { TenancyModule } from './tenancy/tenancy.module';
     OrganizationModule,
     WorkspaceModule,
     AccessHostModule,
+    AuditHostModule,
     OnboardingModule,
     TenancyModule,
     HealthModule,

@@ -147,6 +147,9 @@ importers:
       '@agentos/access':
         specifier: workspace:*
         version: link:../../modules/access
+      '@agentos/audit':
+        specifier: workspace:*
+        version: link:../../modules/audit
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../contracts
@@ -159,6 +162,9 @@ importers:
       '@agentos/identity':
         specifier: workspace:*
         version: link:../../modules/identity
+      '@agentos/message-bus':
+        specifier: workspace:*
+        version: link:../../packages/platform/message-bus
       '@agentos/observability':
         specifier: workspace:*
         version: link:../../packages/platform/observability
@@ -203,9 +209,15 @@ importers:
       '@agentos/identifier':
         specifier: workspace:*
         version: link:../../packages/platform/identifier
+      '@agentos/message-bus':
+        specifier: workspace:*
+        version: link:../../packages/platform/message-bus
       '@agentos/persistence-kernel':
         specifier: workspace:*
         version: link:../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../packages/platform/result-errors
 
   modules/event-backbone:
     dependencies:
@@ -215,6 +227,9 @@ importers:
       '@agentos/identifier':
         specifier: workspace:*
         version: link:../../packages/platform/identifier
+      '@agentos/message-bus':
+        specifier: workspace:*
+        version: link:../../packages/platform/message-bus
       '@agentos/persistence-kernel':
         specifier: workspace:*
         version: link:../../packages/platform/persistence-kernel
@@ -275,6 +290,8 @@ importers:
       uuidv7:
         specifier: ^1.0.2
         version: 1.2.1
+
+  packages/platform/message-bus: {}
 
   packages/platform/observability:
     dependencies:

@@ -52,3 +52,9 @@ GRANT SELECT ON
   sessions,
   permissions
 TO platform_operator;
+
+-- event_relay (Phase 5 outbox relay): the only privilege it needs is to read pending events and
+-- mark them published. SELECT + UPDATE on domain_events ONLY — no other table, no INSERT (events
+-- are authored by app_user in the writer's transaction), no DELETE (the outbox is append-only).
+GRANT USAGE ON SCHEMA public TO event_relay;
+GRANT SELECT, UPDATE ON domain_events TO event_relay;

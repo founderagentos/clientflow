@@ -17,6 +17,14 @@ const envSchema = z
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().positive().default(3000),
     DATABASE_URL: z.string().min(1).default('postgres://agentos:agentos@localhost:5432/agentos'),
+    // The Phase 5 outbox relay connects as the privileged `event_relay` role (BYPASSRLS) on its
+    // own pool, so it can read every tenant's pending events — never the RLS-bound app_user
+    // connection (CLAUDE.md §3.14/§6 Phase 5). Defaults to the local event_relay role created by
+    // db/policies; production points it at a distinct least-privilege credential.
+    EVENT_RELAY_DATABASE_URL: z
+      .string()
+      .min(1)
+      .default('postgres://event_relay:event_relay@localhost:5432/agentos'),
     REDIS_URL: z.string().min(1).default('redis://localhost:6379'),
     LOG_LEVEL: z.string().default('info'),
     OTEL_SERVICE_NAME: z.string().default('agentos-api'),

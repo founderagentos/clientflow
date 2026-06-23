@@ -21,7 +21,7 @@ function alterRolePassword(roleName: string, password: string): string {
  */
 export async function applyPolicies(
   sql: Sql,
-  passwords: { appUser: string; platformOperator: string },
+  passwords: { appUser: string; platformOperator: string; eventRelay: string },
 ): Promise<void> {
   const files = [
     '000-roles.sql',
@@ -40,6 +40,7 @@ export async function applyPolicies(
 
   await sql.unsafe(alterRolePassword('app_user', passwords.appUser));
   await sql.unsafe(alterRolePassword('platform_operator', passwords.platformOperator));
+  await sql.unsafe(alterRolePassword('event_relay', passwords.eventRelay));
 }
 
 async function main(): Promise<void> {
@@ -47,10 +48,15 @@ async function main(): Promise<void> {
     process.env.DATABASE_URL ?? 'postgres://agentos:agentos@localhost:5432/agentos';
   const appUserPassword = process.env.APP_USER_DB_PASSWORD ?? 'app_user';
   const platformOperatorPassword = process.env.PLATFORM_OPERATOR_DB_PASSWORD ?? 'platform_operator';
+  const eventRelayPassword = process.env.EVENT_RELAY_DB_PASSWORD ?? 'event_relay';
 
   const sql = postgres(databaseUrl, { max: 1 });
   try {
-    await applyPolicies(sql, { appUser: appUserPassword, platformOperator: platformOperatorPassword });
+    await applyPolicies(sql, {
+      appUser: appUserPassword,
+      platformOperator: platformOperatorPassword,
+      eventRelay: eventRelayPassword,
+    });
     console.log('Policies applied.');
   } finally {
     await sql.end({ timeout: 5 });

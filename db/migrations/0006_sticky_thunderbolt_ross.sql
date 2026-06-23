@@ -1,0 +1,2 @@
+ALTER TABLE "audit_log_entries" ADD COLUMN "source_event_id" uuid;--> statement-breakpoint
+CREATE UNIQUE INDEX "audit_log_entries_source_event_id_key" ON "audit_log_entries" USING btree ("source_event_id");

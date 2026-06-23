@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, inet, jsonb, index, check } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, inet, jsonb, index, uniqueIndex, check } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { newId } from '@agentos/identifier';
 import { appendOnlyTimestamp } from '@agentos/persistence-kernel';
@@ -10,6 +10,12 @@ import { appendOnlyTimestamp } from '@agentos/persistence-kernel';
  * principal). No own FK declared here — `actor_principal_id → principals.id` is added in
  * db/migrations/0002 (cross-module, CLAUDE.md §17). Partition-ready (not yet partitioned —
  * CLAUDE.md §5/RFC §9.6) by `created_at`.
+ *
+ * `source_event_id` is the id of the `domain_events` row this entry was projected from (Phase 5
+ * event-driven audit writer). A UNIQUE index makes the consumer idempotent under at-least-once
+ * delivery: re-delivering the same event hits `ON CONFLICT (source_event_id) DO NOTHING`. It is
+ * nullable (Postgres treats NULLs as distinct, so the unique index still permits any future
+ * non-event-sourced entry); no FK — it must not couple to the partition-bound `domain_events`.
  */
 export const auditLogEntries = pgTable(
   'audit_log_entries',
@@ -25,6 +31,7 @@ export const auditLogEntries = pgTable(
     ip: inet('ip'),
     userAgent: text('user_agent'),
     correlationId: text('correlation_id').notNull(),
+    sourceEventId: uuid('source_event_id'),
     ...appendOnlyTimestamp,
     metadata: jsonb('metadata').notNull().default({}),
   },
@@ -38,6 +45,8 @@ export const auditLogEntries = pgTable(
       t.createdAt.desc(),
     ),
     index('audit_log_entries_resource_type_resource_id_idx').on(t.resourceType, t.resourceId),
+    // Idempotency key for the Phase 5 event-driven writer (at-least-once delivery).
+    uniqueIndex('audit_log_entries_source_event_id_key').on(t.sourceEventId),
     check(
       'audit_log_entries_result_check',
       sql`${t.result} in ('allow', 'deny', 'success', 'failure')`,

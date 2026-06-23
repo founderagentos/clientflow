@@ -26,3 +26,13 @@ export type Executor = Pick<Tx, 'select' | 'insert' | 'update' | 'execute'>;
  * which the Nx boundary rules forbid (CLAUDE.md §17). The app's DatabaseModule provides it.
  */
 export const DATABASE = Symbol('agentos.persistence.database');
+
+/**
+ * DI token for a second Drizzle handle bound to the privileged `event_relay` connection
+ * (BYPASSRLS, granted only SELECT/UPDATE on `domain_events` — db/policies). The Phase 5 relay is
+ * cross-tenant infrastructure: it must read every organization's pending events, so it cannot use
+ * the RLS-bound `app_user` pool (which would see only one tenant). Provided by the app's
+ * DatabaseModule; injected by the event-backbone relay. Defined here (not in the app) for the
+ * same boundary reason as {@link DATABASE} (CLAUDE.md §17).
+ */
+export const RELAY_DATABASE = Symbol('agentos.persistence.relay-database');

@@ -27,3 +27,16 @@ BEGIN
   END IF;
 END
 $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'event_relay') THEN
+    -- The Phase 5 outbox relay's identity. BYPASSRLS because the relay is cross-tenant
+    -- infrastructure: it must read every organization's pending `domain_events`, which the
+    -- RLS-bound app_user cannot. Least privilege — 030-grants.sql gives it only SELECT/UPDATE
+    -- on domain_events (no other table, no INSERT/DELETE), so a leaked relay credential can
+    -- read events and mark them published, nothing more.
+    CREATE ROLE event_relay NOSUPERUSER NOINHERIT LOGIN BYPASSRLS;
+  END IF;
+END
+$$;

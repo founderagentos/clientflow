@@ -5,10 +5,12 @@
   "main": "./dist/main.js",
   "dependencies": {
     "@agentos/access": "workspace:*",
+    "@agentos/audit": "workspace:*",
     "@agentos/contracts": "workspace:*",
     "@agentos/event-backbone": "workspace:*",
     "@agentos/identifier": "workspace:*",
     "@agentos/identity": "workspace:*",
+    "@agentos/message-bus": "workspace:*",
     "@agentos/observability": "workspace:*",
     "@agentos/organization": "workspace:*",
     "@agentos/persistence-kernel": "workspace:*",

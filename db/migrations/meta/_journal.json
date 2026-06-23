@@ -36,6 +36,20 @@
       "when": 1781758018876,
       "tag": "0004_curious_stardust",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1782058963103,
+      "tag": "0005_sudden_madame_web",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1782059400962,
+      "tag": "0006_sticky_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

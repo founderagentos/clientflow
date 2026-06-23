@@ -12,13 +12,15 @@ import { PermissionsController } from './permissions.controller';
 import { RoleAssignmentsController } from './role-assignments.controller';
 import { ServiceAccountsController } from './service-accounts.controller';
 import { ApiKeysController } from './api-keys.controller';
+import { PermissionCacheInvalidationConsumer } from './permission-cache-invalidation.consumer';
 
 /**
  * Host access slice (CLAUDE.md §6 Phase 4) — the HTTP surface for roles, permissions, role
  * assignment, service accounts, and API keys, plus the PDP-backed permission guard and the
  * cross-context orchestrators. Hosted here (type:app) because it composes identity (service
  * accounts / API keys), workspace (memberships), and access (PDP / roles) — a bounded-context
- * module may not import another's internals (§17).
+ * module may not import another's internals (§17). Phase 5 adds the event-driven permission-cache
+ * invalidation backup (§3.10), which consumes role/membership events off the MessageBus.
  */
 @Module({
   imports: [AccessFeature, IdentityFeature, WorkspaceModule],
@@ -35,6 +37,7 @@ import { ApiKeysController } from './api-keys.controller';
     RoleAssignmentOrchestrator,
     ServiceAccountOrchestrator,
     ApiKeyOrchestrator,
+    PermissionCacheInvalidationConsumer,
   ],
 })
 export class AccessHostModule {}

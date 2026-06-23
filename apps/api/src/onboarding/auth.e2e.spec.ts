@@ -46,6 +46,7 @@ describe('auth (Phase 2 gates)', () => {
           DATABASE_URL: pg.getConnectionUri(),
           APP_USER_DB_PASSWORD: 'app_user_pw',
           PLATFORM_OPERATOR_DB_PASSWORD: 'platform_operator_pw',
+          EVENT_RELAY_DB_PASSWORD: 'event_relay_pw',
         },
       },
     );
@@ -57,8 +58,13 @@ describe('auth (Phase 2 gates)', () => {
     appUserUrl.username = 'app_user';
     appUserUrl.password = 'app_user_pw';
 
+    const relayUrl = new URL(pg.getConnectionUri());
+    relayUrl.username = 'event_relay';
+    relayUrl.password = 'event_relay_pw';
+
     process.env.NODE_ENV = 'test';
     process.env.DATABASE_URL = appUserUrl.toString();
+    process.env.EVENT_RELAY_DATABASE_URL = relayUrl.toString();
     process.env.REDIS_URL = `redis://${redis.getHost()}:${redis.getMappedPort(6379)}`;
     process.env.AUTH_COOKIE_SECURE = 'false';
     process.env.LOGIN_MAX_ATTEMPTS = '3';

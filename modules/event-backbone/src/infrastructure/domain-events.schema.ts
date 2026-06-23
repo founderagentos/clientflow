@@ -31,6 +31,13 @@ export const domainEvents = pgTable(
     occurredAt: timestamp('occurred_at', { withTimezone: true }).notNull().defaultNow(),
     publishedAt: timestamp('published_at', { withTimezone: true }),
     status: text('status').notNull().default('pending'),
+    /**
+     * Relay retry counter (CLAUDE.md §6 Phase 5). Each failed publish bumps it; past a cap the
+     * relay sets status='failed' and stops re-delivering, leaving the row for an operator. Only
+     * ever written by the relay — does not break append-only-of-domain-facts (the event body is
+     * immutable; this is delivery bookkeeping, like published_at/status).
+     */
+    publishAttempts: integer('publish_attempts').notNull().default(0),
   },
   (t) => [
     index('domain_events_unpublished_idx')
