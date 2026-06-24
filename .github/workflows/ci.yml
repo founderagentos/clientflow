@@ -45,3 +45,7 @@ jobs:
       # Boundary lint (@nx/enforce-module-boundaries) is part of `lint` — a cross-module
       # import fails CI here (CLAUDE.md §17, RFC Risk R-1).
       - run: pnpm exec nx run-many -t lint typecheck test build
+      # OpenAPI drift guard (CLAUDE.md §6): the committed contract must match the route registry.
+      # Runs after build so the generator resolves the built contracts/identity packages.
+      - run: pnpm exec tsx apps/api/src/openapi/generate-openapi.ts
+      - run: git diff --exit-code docs/openapi.json
