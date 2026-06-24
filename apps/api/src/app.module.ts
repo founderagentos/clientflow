@@ -21,6 +21,7 @@ import { IdempotencyStore } from './http/idempotency-store';
 import { IdentityFeature } from './onboarding/identity.feature';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { TenancyModule } from './tenancy/tenancy.module';
+import { OpenApiModule } from './openapi/openapi.module';
 
 /**
  * Composition root. Wires the auth core (identity: login/refresh/logout/sessions), the
@@ -44,6 +45,7 @@ import { TenancyModule } from './tenancy/tenancy.module';
     OnboardingModule,
     TenancyModule,
     HealthModule,
+    OpenApiModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemDetailsExceptionFilter },
