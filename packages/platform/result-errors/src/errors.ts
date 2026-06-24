@@ -1,7 +1,12 @@
 import type { ProblemDetails } from './problem-details';
 
 /** URN namespace for problem types: urn:agentos:problem:<code>. */
-const PROBLEM_TYPE_BASE = 'urn:agentos:problem:';
+export const PROBLEM_TYPE_BASE = 'urn:agentos:problem:';
+
+/** Build the stable problem-type URI for a code (the same value AppError.type returns). */
+export function problemType(code: string): string {
+  return `${PROBLEM_TYPE_BASE}${code}`;
+}
 
 export interface AppErrorOptions {
   detail?: string;
@@ -122,6 +127,63 @@ export class TooManyRequestsError extends AppError {
   readonly status: number = 429;
   readonly code: string = 'rate_limited';
   constructor(message = 'Too many requests', options?: AppErrorOptions) {
+    super(message, options);
+  }
+}
+
+/** 400 — malformed request the validator cannot express (e.g. a bad Idempotency-Key header). */
+export class BadRequestError extends AppError {
+  readonly status: number = 400;
+  readonly code: string = 'bad_request';
+  constructor(message = 'Bad request', options?: AppErrorOptions) {
+    super(message, options);
+  }
+}
+
+/** 413 — request body exceeds the configured limit (§6 edge hardening). */
+export class PayloadTooLargeError extends AppError {
+  readonly status: number = 413;
+  readonly code: string = 'payload_too_large';
+  constructor(message = 'Request body too large', options?: AppErrorOptions) {
+    super(message, options);
+  }
+}
+
+/** 415 — unsupported or missing Content-Type. */
+export class UnsupportedMediaTypeError extends AppError {
+  readonly status: number = 415;
+  readonly code: string = 'unsupported_media_type';
+  constructor(message = 'Unsupported media type', options?: AppErrorOptions) {
+    super(message, options);
+  }
+}
+
+/** 422 — same Idempotency-Key replayed with a different request payload (§6). */
+export class IdempotencyKeyConflictError extends AppError {
+  readonly status: number = 422;
+  readonly code: string = 'idempotency_key_reused';
+  constructor(
+    message = 'Idempotency-Key was reused with a different request',
+    options?: AppErrorOptions,
+  ) {
+    super(message, options);
+  }
+}
+
+/** 409 — a request with the same Idempotency-Key is still in flight (§6). */
+export class RequestInProgressError extends AppError {
+  readonly status: number = 409;
+  readonly code: string = 'request_in_progress';
+  constructor(message = 'A request with this Idempotency-Key is already in progress', options?: AppErrorOptions) {
+    super(message, options);
+  }
+}
+
+/** 503 — a dependency is unavailable; the request can be retried. */
+export class ServiceUnavailableError extends AppError {
+  readonly status: number = 503;
+  readonly code: string = 'service_unavailable';
+  constructor(message = 'Service temporarily unavailable', options?: AppErrorOptions) {
     super(message, options);
   }
 }
