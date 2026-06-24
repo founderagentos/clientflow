@@ -53,6 +53,23 @@ const envSchema = z
     AUTH_COOKIE_NAME: z.string().default('agentos_refresh'),
     AUTH_COOKIE_SECURE: boolFromString(true),
     AUTH_COOKIE_DOMAIN: z.string().optional(),
+
+    // --- Edge hardening (CLAUDE.md §6 Phase 6) ---
+    // Request body size cap; Fastify rejects larger bodies with 413 (mapped to PayloadTooLargeError).
+    MAX_REQUEST_BODY_BYTES: z.coerce.number().int().positive().default(1_048_576), // 1 MiB
+
+    // Three-layer rate limiting (Redis sliding-window). Counts are per window per key.
+    RATE_LIMIT_ENABLED: boolFromString(true),
+    RATE_LIMIT_IP_MAX: z.coerce.number().int().positive().default(300),
+    RATE_LIMIT_IP_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+    RATE_LIMIT_PRINCIPAL_MAX: z.coerce.number().int().positive().default(600),
+    RATE_LIMIT_PRINCIPAL_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+    RATE_LIMIT_ORG_MAX: z.coerce.number().int().positive().default(3_000),
+    RATE_LIMIT_ORG_WINDOW_SECONDS: z.coerce.number().int().positive().default(60),
+
+    // Idempotency-Key replay cache (Redis). Completed responses are replayed within the TTL.
+    IDEMPOTENCY_ENABLED: boolFromString(true),
+    IDEMPOTENCY_TTL_SECONDS: z.coerce.number().int().positive().default(86_400), // 24h
   })
   .superRefine((config, ctx) => {
     if (config.NODE_ENV === 'production' && (!config.JWT_PRIVATE_KEY || !config.JWT_PUBLIC_KEY)) {

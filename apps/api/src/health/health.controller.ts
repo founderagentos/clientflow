@@ -2,6 +2,7 @@ import { Controller, Get, Res } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { DatabaseHealthIndicator } from '../persistence/database.health-indicator';
 import { RedisHealthIndicator } from '../redis/redis.health-indicator';
+import { SkipRateLimit } from '../http/rate-limit.decorator';
 import type { HealthDetail } from './health.types';
 
 export interface HealthReport {
@@ -12,6 +13,7 @@ export interface HealthReport {
 
 /** Liveness/readiness probe — green only when Postgres and Redis are both reachable. */
 @Controller('health')
+@SkipRateLimit()
 export class HealthController {
   constructor(
     private readonly db: DatabaseHealthIndicator,

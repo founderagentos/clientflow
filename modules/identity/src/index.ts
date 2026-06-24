@@ -105,6 +105,7 @@ export { SessionIssuer } from './application/session-issuer';
 export type { IssuedTokens, ClientMeta } from './application/session-issuer';
 export type { AuthContext, RequestWithAuth } from './interfaces/auth-context';
 export { AccessTokenGuard, requireAuth } from './interfaces/access-token.guard';
+export { authRouteDescriptors } from './interfaces/auth.routes';
 export {
   deliverTokens,
   clearRefreshCookie,

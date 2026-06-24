@@ -1,5 +1,5 @@
 import { Module, type MiddlewareConsumer, type NestModule } from '@nestjs/common';
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggerModule } from 'nestjs-pino';
 import { loggerModuleParams } from '@agentos/observability';
 import { EventBackboneModule } from '@agentos/event-backbone';
@@ -15,9 +15,13 @@ import { ApiKeyAuthMiddleware } from './http/api-key-auth.middleware';
 import { AccessHostModule } from './access/access.module';
 import { AuditHostModule } from './audit/audit.module';
 import { LoginThrottleInterceptor } from './http/login-throttle.interceptor';
+import { RateLimitGuard } from './http/rate-limit.guard';
+import { IdempotencyInterceptor } from './http/idempotency.interceptor';
+import { IdempotencyStore } from './http/idempotency-store';
 import { IdentityFeature } from './onboarding/identity.feature';
 import { OnboardingModule } from './onboarding/onboarding.module';
 import { TenancyModule } from './tenancy/tenancy.module';
+import { OpenApiModule } from './openapi/openapi.module';
 
 /**
  * Composition root. Wires the auth core (identity: login/refresh/logout/sessions), the
@@ -41,10 +45,15 @@ import { TenancyModule } from './tenancy/tenancy.module';
     OnboardingModule,
     TenancyModule,
     HealthModule,
+    OpenApiModule,
   ],
   providers: [
     { provide: APP_FILTER, useClass: ProblemDetailsExceptionFilter },
+    // Edge guard runs before route permission guards — reject rate-limited requests before any PDP/DB.
+    { provide: APP_GUARD, useClass: RateLimitGuard },
     { provide: APP_INTERCEPTOR, useClass: LoginThrottleInterceptor },
+    IdempotencyStore,
+    { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
   ],
 })
 export class AppModule implements NestModule {
