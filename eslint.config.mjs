@@ -65,6 +65,13 @@ export default tseslint.config(
               ],
             },
             {
+              // All five CRM modules share one scope (RFC-002 §3.3 / CLAUDE.md §17): they may not
+              // import each other's internals or any other module — only platform + contracts.
+              // Cross-CRM-module composition happens in apps/api/src/crm/ host orchestrators.
+              sourceTag: 'scope:crm',
+              onlyDependOnLibsWithTags: ['scope:crm', 'scope:platform', 'scope:contracts'],
+            },
+            {
               sourceTag: 'scope:platform',
               onlyDependOnLibsWithTags: ['scope:platform'],
             },

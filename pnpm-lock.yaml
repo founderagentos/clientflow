@@ -219,6 +219,81 @@ importers:
         specifier: workspace:*
         version: link:../../packages/platform/result-errors
 
+  modules/crm/account:
+    dependencies:
+      '@agentos/contracts':
+        specifier: workspace:*
+        version: link:../../../contracts
+      '@agentos/identifier':
+        specifier: workspace:*
+        version: link:../../../packages/platform/identifier
+      '@agentos/persistence-kernel':
+        specifier: workspace:*
+        version: link:../../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../../packages/platform/result-errors
+
+  modules/crm/activity:
+    dependencies:
+      '@agentos/contracts':
+        specifier: workspace:*
+        version: link:../../../contracts
+      '@agentos/identifier':
+        specifier: workspace:*
+        version: link:../../../packages/platform/identifier
+      '@agentos/persistence-kernel':
+        specifier: workspace:*
+        version: link:../../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../../packages/platform/result-errors
+
+  modules/crm/customization:
+    dependencies:
+      '@agentos/contracts':
+        specifier: workspace:*
+        version: link:../../../contracts
+      '@agentos/identifier':
+        specifier: workspace:*
+        version: link:../../../packages/platform/identifier
+      '@agentos/persistence-kernel':
+        specifier: workspace:*
+        version: link:../../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../../packages/platform/result-errors
+
+  modules/crm/deal:
+    dependencies:
+      '@agentos/contracts':
+        specifier: workspace:*
+        version: link:../../../contracts
+      '@agentos/identifier':
+        specifier: workspace:*
+        version: link:../../../packages/platform/identifier
+      '@agentos/persistence-kernel':
+        specifier: workspace:*
+        version: link:../../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../../packages/platform/result-errors
+
+  modules/crm/lead:
+    dependencies:
+      '@agentos/contracts':
+        specifier: workspace:*
+        version: link:../../../contracts
+      '@agentos/identifier':
+        specifier: workspace:*
+        version: link:../../../packages/platform/identifier
+      '@agentos/persistence-kernel':
+        specifier: workspace:*
+        version: link:../../../packages/platform/persistence-kernel
+      '@agentos/result-errors':
+        specifier: workspace:*
+        version: link:../../../packages/platform/result-errors
+
   modules/event-backbone:
     dependencies:
       '@agentos/contracts':
