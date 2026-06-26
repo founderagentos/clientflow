@@ -1,4 +1,10 @@
-import { AccessEventType, CrmEventType, IdentityEventType, TenancyEventType } from '@agentos/contracts';
+import {
+  AccessEventType,
+  CrmEventType,
+  DealEventType,
+  IdentityEventType,
+  TenancyEventType,
+} from '@agentos/contracts';
 import type { DeliveredEvent } from '@agentos/message-bus';
 
 /** Allowed values of `audit_log_entries.result` (CHECK constraint in the schema). */
@@ -76,6 +82,20 @@ const CLASSIFICATIONS: Record<
     action: 'set_primary',
     resourceType: 'account_contact',
   },
+  // CRM Core — Deal + Pipeline (RFC-002 §9). DealStageChanged is the velocity-bearing event; a
+  // terminal transition additionally records DealWon/DealLost.
+  [DealEventType.PipelineCreated]: { action: 'create', resourceType: 'pipeline' },
+  [DealEventType.PipelineUpdated]: { action: 'update', resourceType: 'pipeline' },
+  [DealEventType.PipelineStageAdded]: { action: 'add_stage', resourceType: 'pipeline' },
+  [DealEventType.PipelineStageUpdated]: { action: 'update_stage', resourceType: 'pipeline' },
+  [DealEventType.PipelineStagesReordered]: { action: 'reorder_stages', resourceType: 'pipeline' },
+  [DealEventType.DealCreated]: { action: 'create', resourceType: 'deal' },
+  [DealEventType.DealUpdated]: { action: 'update', resourceType: 'deal' },
+  [DealEventType.DealDeleted]: { action: 'delete', resourceType: 'deal' },
+  [DealEventType.DealAssigned]: { action: 'assign', resourceType: 'deal' },
+  [DealEventType.DealStageChanged]: { action: 'transition', resourceType: 'deal' },
+  [DealEventType.DealWon]: { action: 'win', resourceType: 'deal' },
+  [DealEventType.DealLost]: { action: 'lose', resourceType: 'deal' },
 };
 
 /**
