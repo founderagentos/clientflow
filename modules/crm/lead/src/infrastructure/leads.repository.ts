@@ -130,6 +130,21 @@ export class LeadsRepository {
       .where(and(eq(leads.domain, domain), isNull(leads.deletedAt))) as Promise<LeadRow[]>;
   }
 
+  /**
+   * The active lead whose `email_normalized` matches, if any — the bulk-import dedup signal (RFC
+   * §4.B/§6.2). `emailNormalized` must be pre-normalized by the caller; never matches a null value.
+   * A *signal*, never a unique constraint (§11) — duplicates are legitimate; the import *policy*
+   * (skip-on-match) decides what to do, not the DB.
+   */
+  async findActiveByEmailNormalized(tx: Tx, emailNormalized: string): Promise<LeadRow | null> {
+    const [row] = await tx
+      .select(ROW)
+      .from(leads)
+      .where(and(eq(leads.emailNormalized, emailNormalized), isNull(leads.deletedAt)))
+      .limit(1);
+    return (row as LeadRow | undefined) ?? null;
+  }
+
   async insert(tx: Tx, input: LeadInsert): Promise<void> {
     await tx.insert(leads).values({
       id: input.id,

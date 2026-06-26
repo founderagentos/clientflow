@@ -1,7 +1,9 @@
 import 'reflect-metadata';
 import { Module } from '@nestjs/common';
 import { LeadsRepository } from './infrastructure/leads.repository';
+import { ImportJobsRepository } from './infrastructure/import-jobs.repository';
 import { LeadService } from './application/lead.service';
+import { LeadImportService } from './application/lead-import.service';
 
 /**
  * The CRM `lead` bounded context (RFC-002 §3.1) — the Lead aggregate: lifecycle, dedup keys, merge,
@@ -12,13 +14,15 @@ import { LeadService } from './application/lead.service';
  * cross-CRM-module composition happens in `apps/api/src/crm/` host orchestrators.
  */
 @Module({
-  providers: [LeadsRepository, LeadService],
-  exports: [LeadService],
+  providers: [LeadsRepository, ImportJobsRepository, LeadService, LeadImportService],
+  exports: [LeadService, LeadImportService],
 })
 export class CrmLeadModule {}
 
 export { LeadService } from './application/lead.service';
+export { LeadImportService } from './application/lead-import.service';
 export { LeadsRepository, type LeadRow } from './infrastructure/leads.repository';
+export type { ImportJobRow } from './infrastructure/import-jobs.repository';
 export type { LeadActor } from './application/lead-actor';
 export type {
   CreateLeadInput,
@@ -26,6 +30,11 @@ export type {
   ListLeadsInput,
   ConvertWithinInput,
 } from './application/lead.service';
+export type {
+  ImportRow,
+  ChunkCounts,
+  FinalCounts,
+} from './application/lead-import.service';
 export {
   normalizeDomain,
   normalizeEmail,

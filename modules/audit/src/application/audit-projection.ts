@@ -105,6 +105,7 @@ const CLASSIFICATIONS: Record<
   [LeadEventType.LeadAssigned]: { action: 'assign', resourceType: 'lead' },
   [LeadEventType.LeadsMerged]: { action: 'merge', resourceType: 'lead' },
   [LeadEventType.LeadConverted]: { action: 'convert', resourceType: 'lead' },
+  [LeadEventType.LeadImported]: { action: 'import', resourceType: 'import_job' },
 };
 
 /**

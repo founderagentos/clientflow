@@ -14,13 +14,16 @@ export const LeadEventType = {
   LeadAssigned: 'LeadAssigned',
   LeadsMerged: 'LeadsMerged',
   LeadConverted: 'LeadConverted',
+  LeadImported: 'LeadImported',
 } as const;
 
 export type LeadEventType = (typeof LeadEventType)[keyof typeof LeadEventType];
 
-/** Aggregate-type label for the outbox `aggregate_type` column. */
+/** Aggregate-type labels for the outbox `aggregate_type` column. */
 export const LeadAggregateType = {
   Lead: 'Lead',
+  /** The bulk-import job aggregate — `LeadImported` summarizes one finished import run. */
+  ImportJob: 'ImportJob',
 } as const;
 
 export const LeadStatus = {
@@ -74,9 +77,19 @@ export const leadConvertedPayload = z.object({
   dealId: z.string(),
 });
 
+/** Emitted once when a bulk import finishes (RFC §4.B) — the per-outcome row counts. */
+export const leadImportedPayload = z.object({
+  importJobId: z.string(),
+  created: z.number().int().nonnegative(),
+  merged: z.number().int().nonnegative(),
+  skipped: z.number().int().nonnegative(),
+  failed: z.number().int().nonnegative(),
+});
+
 export type LeadCreatedPayload = z.infer<typeof leadCreatedPayload>;
 export type LeadUpdatedPayload = z.infer<typeof leadUpdatedPayload>;
 export type LeadStatusChangedPayload = z.infer<typeof leadStatusChangedPayload>;
 export type LeadAssignedPayload = z.infer<typeof leadAssignedPayload>;
 export type LeadsMergedPayload = z.infer<typeof leadsMergedPayload>;
 export type LeadConvertedPayload = z.infer<typeof leadConvertedPayload>;
+export type LeadImportedPayload = z.infer<typeof leadImportedPayload>;
