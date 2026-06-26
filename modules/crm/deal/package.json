@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@agentos/contracts": "workspace:*",
+    "@agentos/message-bus": "workspace:*",
     "@agentos/persistence-kernel": "workspace:*",
     "@agentos/identifier": "workspace:*",
     "@agentos/result-errors": "workspace:*"

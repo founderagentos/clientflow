@@ -32,6 +32,13 @@ describe('tenant isolation (RLS)', () => {
   const orgB = '00000000-0000-7000-8000-00000000000b';
   const workspaceA = '00000000-0000-7000-8000-0000000000aa';
   const workspaceB = '00000000-0000-7000-8000-0000000000bb';
+  // A second workspace inside Org A — proves CRM workspace isolation *within one organization*
+  // (RFC-002 §6 / gate §13.1), which kernel tables (org-only RLS) cannot exercise.
+  const workspaceA2 = '00000000-0000-7000-8000-0000000000ac';
+  const leadA = '00000000-0000-7000-8000-00000000001a';
+  const leadA2 = '00000000-0000-7000-8000-00000000001c';
+  const leadB = '00000000-0000-7000-8000-00000000001b';
+  const tagOrgScoped = '00000000-0000-7000-8000-00000000002a';
   const roleA = '00000000-0000-7000-8000-0000000000ca';
   const roleB = '00000000-0000-7000-8000-0000000000cb';
   const membershipA = '00000000-0000-7000-8000-0000000000da';
@@ -73,6 +80,8 @@ describe('tenant isolation (RLS)', () => {
     );
     await adminSql.unsafe("ALTER ROLE non_superuser_owner WITH PASSWORD $pwd$owner_pw$pwd$");
     await adminSql.unsafe('ALTER TABLE workspaces OWNER TO non_superuser_owner');
+    // Also re-own a CRM table, to prove FORCE RLS holds on the CRM org+workspace policy too.
+    await adminSql.unsafe('ALTER TABLE leads OWNER TO non_superuser_owner');
 
     await adminSql.unsafe(`
       INSERT INTO principals (id, type) VALUES
@@ -83,6 +92,7 @@ describe('tenant isolation (RLS)', () => {
         ('${orgB}', 'org-b', 'Org B');
       INSERT INTO workspaces (id, organization_id, slug, name) VALUES
         ('${workspaceA}', '${orgA}', 'ws-a', 'WS A'),
+        ('${workspaceA2}', '${orgA}', 'ws-a2', 'WS A2'),
         ('${workspaceB}', '${orgB}', 'ws-b', 'WS B');
       INSERT INTO roles (id, organization_id, scope, name) VALUES
         ('${roleA}', '${orgA}', 'workspace', 'custom-a'),
@@ -96,6 +106,14 @@ describe('tenant isolation (RLS)', () => {
       INSERT INTO invitations (id, organization_id, workspace_id, email, role_id, token_hash, expires_at) VALUES
         ('${invitationA}', '${orgA}', '${workspaceA}', 'a@example.com', '${roleA}', '${tokenHashA}', now() + interval '7 days'),
         ('${invitationB}', '${orgB}', '${workspaceB}', 'b@example.com', '${roleB}', '${tokenHashB}', now() + interval '7 days');
+      -- CRM rows: two leads in different workspaces of the SAME org (A vs A2), one in Org B, and an
+      -- org-scoped (workspace_id NULL) tag — to exercise workspace isolation + the org-scoped escape.
+      INSERT INTO leads (id, organization_id, workspace_id, status, name) VALUES
+        ('${leadA}', '${orgA}', '${workspaceA}', 'new', 'Lead A'),
+        ('${leadA2}', '${orgA}', '${workspaceA2}', 'new', 'Lead A2'),
+        ('${leadB}', '${orgB}', '${workspaceB}', 'new', 'Lead B');
+      INSERT INTO tags (id, organization_id, workspace_id, name) VALUES
+        ('${tagOrgScoped}', '${orgA}', NULL, 'org-wide');
     `);
 
     const connectionUrl = new URL(container.getConnectionUri());
@@ -124,8 +142,8 @@ describe('tenant isolation (RLS)', () => {
   it('returns only Org A rows when Org A context is set, with no WHERE clause at all', async () => {
     await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
     const rows = await appUserSql`SELECT id FROM workspaces`;
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.id).toBe(workspaceA);
+    // Org A owns two workspaces (A + A2); neither Org B workspace is visible.
+    expect(rows.map((row) => row.id).sort()).toEqual([workspaceA, workspaceA2].sort());
   });
 
   it('returns only Org B rows when Org B context is set', async () => {
@@ -158,13 +176,14 @@ describe('tenant isolation (RLS)', () => {
       `SELECT set_config('app.current_organization_id', '${orgA}', false)`,
     );
     const rows = await nonSuperuserOwnerSql`SELECT id FROM workspaces`;
-    expect(rows).toHaveLength(1);
-    expect(rows[0]?.id).toBe(workspaceA);
+    expect(rows.map((row) => row.id).sort()).toEqual([workspaceA, workspaceA2].sort());
   });
 
   it('platform_operator (BYPASSRLS) sees rows across every organization', async () => {
     const rows = await platformOperatorSql`SELECT id FROM workspaces`;
-    expect(rows.map((row) => row.id).sort()).toEqual([workspaceA, workspaceB].sort());
+    expect(rows.map((row) => row.id).sort()).toEqual(
+      [workspaceA, workspaceA2, workspaceB].sort(),
+    );
   });
 
   it('isolates a junction table (membership_roles) via its EXISTS-subquery policy', async () => {
@@ -194,5 +213,63 @@ describe('tenant isolation (RLS)', () => {
 
     const missing = await appUserSql`SELECT id FROM auth_invitation_by_token_hash(${'c'.repeat(64)})`;
     expect(missing).toHaveLength(0);
+  });
+
+  // ── CRM Core (RFC-002 §6 / gate §13.1): RLS enforces org AND active-workspace. ──────────────
+
+  it('CRM: returns only the active workspace rows, with no WHERE clause (workspace isolation)', async () => {
+    await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    await appUserSql.unsafe(`SELECT set_config('app.current_workspace_id', '${workspaceA}', false)`);
+    const rows = await appUserSql`SELECT id FROM leads`;
+    expect(rows.map((row) => row.id)).toEqual([leadA]);
+  });
+
+  it('CRM: a sibling workspace in the SAME org cannot read this workspace rows', async () => {
+    await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    await appUserSql.unsafe(`SELECT set_config('app.current_workspace_id', '${workspaceA2}', false)`);
+    const rows = await appUserSql`SELECT id FROM leads`;
+    expect(rows.map((row) => row.id)).toEqual([leadA2]);
+  });
+
+  it('CRM: cross-org rows stay invisible even with a workspace active', async () => {
+    await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    await appUserSql.unsafe(`SELECT set_config('app.current_workspace_id', '${workspaceA}', false)`);
+    const rows = await appUserSql`SELECT id FROM leads WHERE id = ${leadB}`;
+    expect(rows).toHaveLength(0);
+  });
+
+  it('CRM: org-scoped config (workspace_id NULL) is visible under any active workspace', async () => {
+    await appUserSql.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    await appUserSql.unsafe(`SELECT set_config('app.current_workspace_id', '${workspaceA}', false)`);
+    const rows = await appUserSql`SELECT id FROM tags`;
+    expect(rows.map((row) => row.id)).toEqual([tagOrgScoped]);
+  });
+
+  it('CRM: workspace-scoped rows are hidden when only an org context is set (empty-GUC hardening)', async () => {
+    // No workspace active: app.current_workspace_id is unset/'' → NULLIF makes it NULL → leads hidden.
+    const conn = postgres(
+      (() => {
+        const url = new URL(container.getConnectionUri());
+        url.username = 'app_user';
+        url.password = 'app_user_pw';
+        return url.toString();
+      })(),
+      { max: 1 },
+    );
+    await conn.unsafe(`SELECT set_config('app.current_organization_id', '${orgA}', false)`);
+    const rows = await conn`SELECT id FROM leads`;
+    expect(rows).toHaveLength(0);
+    await conn.end({ timeout: 5 });
+  });
+
+  it('CRM: still restricts a non-superuser owner of leads — proves FORCE RLS on a CRM table', async () => {
+    await nonSuperuserOwnerSql.unsafe(
+      `SELECT set_config('app.current_organization_id', '${orgA}', false)`,
+    );
+    await nonSuperuserOwnerSql.unsafe(
+      `SELECT set_config('app.current_workspace_id', '${workspaceA}', false)`,
+    );
+    const rows = await nonSuperuserOwnerSql`SELECT id FROM leads`;
+    expect(rows.map((row) => row.id)).toEqual([leadA]);
   });
 });

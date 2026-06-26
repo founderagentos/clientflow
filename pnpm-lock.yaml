@@ -153,6 +153,9 @@ importers:
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../contracts
+      '@agentos/crm-deal':
+        specifier: workspace:*
+        version: link:../../modules/crm/deal
       '@agentos/event-backbone':
         specifier: workspace:*
         version: link:../../modules/event-backbone
@@ -272,6 +275,9 @@ importers:
       '@agentos/identifier':
         specifier: workspace:*
         version: link:../../../packages/platform/identifier
+      '@agentos/message-bus':
+        specifier: workspace:*
+        version: link:../../../packages/platform/message-bus
       '@agentos/persistence-kernel':
         specifier: workspace:*
         version: link:../../../packages/platform/persistence-kernel

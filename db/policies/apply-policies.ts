@@ -31,6 +31,8 @@ export async function applyPolicies(
     '040-auth-functions.sql',
     '041-invitation-functions.sql',
     '042-api-key-functions.sql',
+    '050-crm-policies.sql',
+    '051-crm-grants.sql',
   ];
 
   for (const file of files) {

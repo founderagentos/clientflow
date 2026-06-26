@@ -5,6 +5,7 @@ import { loggerModuleParams } from '@agentos/observability';
 import { EventBackboneModule } from '@agentos/event-backbone';
 import { OrganizationModule } from '@agentos/organization';
 import { WorkspaceModule } from '@agentos/workspace';
+import { CrmDealModule } from '@agentos/crm-deal';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './persistence/database.module';
 import { RedisModule } from './redis/redis.module';
@@ -44,6 +45,10 @@ import { OpenApiModule } from './openapi/openapi.module';
     AuditHostModule,
     OnboardingModule,
     TenancyModule,
+    // CRM Core (RFC-002). Phase 1: the deal module's DefaultPipelineProvisioner consumes
+    // WorkspaceCreated to seed each new workspace's default pipeline. More CRM modules wire in here
+    // as later phases add HTTP surfaces.
+    CrmDealModule,
     HealthModule,
     OpenApiModule,
   ],
