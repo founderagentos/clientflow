@@ -106,6 +106,22 @@ export class ContactsRepository {
       .limit(limit) as Promise<ContactRow[]>;
   }
 
+  /**
+   * The active contact whose `primary_email_normalized` matches, if any — the Phase-4 conversion
+   * match signal (RFC §4.C). `emailNormalized` must be pre-normalized by the caller; never matches
+   * a null value (no signal to match on).
+   */
+  async findActiveByEmailNormalized(tx: Tx, emailNormalized: string): Promise<ContactRow | null> {
+    const [row] = await tx
+      .select(ROW)
+      .from(contacts)
+      .where(
+        and(eq(contacts.primaryEmailNormalized, emailNormalized), isNull(contacts.deletedAt)),
+      )
+      .limit(1);
+    return (row as ContactRow | undefined) ?? null;
+  }
+
   async insert(tx: Tx, input: ContactInsert): Promise<void> {
     await tx.insert(contacts).values({
       id: input.id,

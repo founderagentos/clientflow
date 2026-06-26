@@ -88,58 +88,67 @@ export class DealService {
   }
 
   async create(actor: DealActor, input: CreateDealInput): Promise<DealRow> {
-    const dealId = newId();
-    return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
-      const pipeline = input.pipelineId
-        ? await this.pipelines.findById(tx, input.pipelineId)
-        : await this.pipelines.findDefault(tx);
-      if (!pipeline) {
-        throw new NotFoundError('Pipeline not found');
-      }
-      const stage = input.stageId
-        ? await this.requireStageInPipeline(tx, input.stageId, pipeline.id)
-        : await this.requireFirstOpenStage(tx, pipeline.id);
+    return withTenantTransaction(this.db, this.scope(actor), (tx) =>
+      this.createWithin(tx, actor, input),
+    );
+  }
 
-      await this.deals.insert(tx, {
-        id: dealId,
-        organizationId: actor.organizationId,
-        workspaceId: actor.workspaceId,
+  /**
+   * Tx-taking create — no transaction of its own, composed by the `LeadConversionOrchestrator`
+   * inside its single cross-module transaction. `create()` is a thin wrapper around this so the
+   * insert+initial-history+`DealCreated` path is shared (DRY; public behavior unchanged).
+   */
+  async createWithin(tx: Tx, actor: DealActor, input: CreateDealInput): Promise<DealRow> {
+    const dealId = newId();
+    const pipeline = input.pipelineId
+      ? await this.pipelines.findById(tx, input.pipelineId)
+      : await this.pipelines.findDefault(tx);
+    if (!pipeline) {
+      throw new NotFoundError('Pipeline not found');
+    }
+    const stage = input.stageId
+      ? await this.requireStageInPipeline(tx, input.stageId, pipeline.id)
+      : await this.requireFirstOpenStage(tx, pipeline.id);
+
+    await this.deals.insert(tx, {
+      id: dealId,
+      organizationId: actor.organizationId,
+      workspaceId: actor.workspaceId,
+      accountId: input.accountId,
+      primaryContactId: input.primaryContactId ?? null,
+      pipelineId: pipeline.id,
+      stageId: stage.id,
+      amount: input.amount ?? null,
+      currency: input.currency ?? null,
+      expectedCloseDate: input.expectedCloseDate ?? null,
+      ownerPrincipalId: input.ownerPrincipalId ?? null,
+      customFields: input.customFields ?? {},
+      actorPrincipalId: actor.principalId,
+    });
+    // Initial history row so stage-velocity has a clean entry timestamp from creation.
+    await this.history.append(tx, {
+      organizationId: actor.organizationId,
+      workspaceId: actor.workspaceId,
+      dealId,
+      fromStageId: null,
+      toStageId: stage.id,
+      durationInPreviousSeconds: null,
+      actorPrincipalId: actor.principalId,
+    });
+    await this.outbox.append(tx, {
+      ...this.eventBase(actor, dealId),
+      type: DealEventType.DealCreated,
+      payload: {
+        dealId,
         accountId: input.accountId,
-        primaryContactId: input.primaryContactId ?? null,
         pipelineId: pipeline.id,
         stageId: stage.id,
         amount: input.amount ?? null,
         currency: input.currency ?? null,
-        expectedCloseDate: input.expectedCloseDate ?? null,
         ownerPrincipalId: input.ownerPrincipalId ?? null,
-        customFields: input.customFields ?? {},
-        actorPrincipalId: actor.principalId,
-      });
-      // Initial history row so stage-velocity has a clean entry timestamp from creation.
-      await this.history.append(tx, {
-        organizationId: actor.organizationId,
-        workspaceId: actor.workspaceId,
-        dealId,
-        fromStageId: null,
-        toStageId: stage.id,
-        durationInPreviousSeconds: null,
-        actorPrincipalId: actor.principalId,
-      });
-      await this.outbox.append(tx, {
-        ...this.eventBase(actor, dealId),
-        type: DealEventType.DealCreated,
-        payload: {
-          dealId,
-          accountId: input.accountId,
-          pipelineId: pipeline.id,
-          stageId: stage.id,
-          amount: input.amount ?? null,
-          currency: input.currency ?? null,
-          ownerPrincipalId: input.ownerPrincipalId ?? null,
-        },
-      });
-      return this.requireDeal(tx, dealId);
+      },
     });
+    return this.requireDeal(tx, dealId);
   }
 
   async update(

@@ -4,6 +4,7 @@ export * from './tenancy-events';
 export * from './access-events';
 export * from './crm-events';
 export * from './deal-events';
+export * from './lead-events';
 export type {
   HttpMethod,
   RouteSecurity,

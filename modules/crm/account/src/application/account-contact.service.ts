@@ -21,6 +21,10 @@ export interface LinkContactInput {
   isPrimary?: boolean;
 }
 
+export interface LinkWithinResult {
+  linked: boolean;
+}
+
 /**
  * Manages the Account↔Contact relationship (RFC-002 §2.2). Each operation validates both ends exist
  * in-tenant (cross-tenant ids return no row under RLS → 404, §3.8), mutates `account_contacts`, and
@@ -114,6 +118,49 @@ export class AccountContactService {
         payload: { accountId, contactId },
       });
     });
+  }
+
+  /**
+   * Tx-taking link (RFC §4.C), composed by the `LeadConversionOrchestrator` inside its single
+   * cross-module transaction. Unlike the public `link()` (which 409s on a duplicate), this is a
+   * **no-op** if the pair is already linked — the orchestrator's dedup match can resolve the same
+   * Account+Contact pair on a replay/second lead, and re-linking should never be an error. Skips the
+   * account/contact existence checks `link()` does, since the caller just created/matched both
+   * within this same transaction.
+   */
+  async linkWithin(tx: Tx, actor: CrmActor, input: LinkContactInput): Promise<LinkWithinResult> {
+    const existing = await this.links.findLink(tx, input.accountId, input.contactId);
+    if (existing) {
+      return { linked: false };
+    }
+    const relationshipRole = input.relationshipRole ?? null;
+    const isPrimary = input.isPrimary ?? false;
+    if (isPrimary) {
+      const current = await this.links.findPrimary(tx, input.accountId);
+      if (current && current.contactId !== input.contactId) {
+        await this.links.setPrimaryFlag(tx, {
+          accountId: input.accountId,
+          contactId: current.contactId,
+          isPrimary: false,
+          actorPrincipalId: actor.principalId,
+        });
+      }
+    }
+    await this.links.link(tx, {
+      organizationId: actor.organizationId,
+      workspaceId: actor.workspaceId,
+      accountId: input.accountId,
+      contactId: input.contactId,
+      relationshipRole,
+      isPrimary,
+      actorPrincipalId: actor.principalId,
+    });
+    await this.outbox.append(tx, {
+      ...this.eventBase(actor, input.accountId),
+      type: CrmEventType.AccountContactLinked,
+      payload: { accountId: input.accountId, contactId: input.contactId, relationshipRole, isPrimary },
+    });
+    return { linked: true };
   }
 
   /** The active contacts linked to an account (the read behind `GET /accounts/{id}/contacts`). */

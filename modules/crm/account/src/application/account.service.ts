@@ -52,6 +52,17 @@ export interface ArchiveAccountInput {
   openDealCount: number;
 }
 
+export interface MatchOrCreateAccountInput {
+  name: string;
+  /** Raw or normalized — re-normalized internally; null/empty means no match signal. */
+  domain?: string | null;
+}
+
+export interface MatchOrCreateAccountResult {
+  accountId: string;
+  created: boolean;
+}
+
 /**
  * Account lifecycle within the active org+workspace (RFC-002 §2.2). Every operation runs in a tenant
  * transaction and emits its PastTense event to the outbox in the same unit of work (§3.14).
@@ -159,6 +170,46 @@ export class AccountService {
         payload: { accountId: input.id },
       });
     });
+  }
+
+  /**
+   * Match-or-create dedup (RFC §4.C), tx-taking — no transaction of its own, composed by the
+   * `LeadConversionOrchestrator` inside its single cross-module transaction. Matches by normalized
+   * `domain` (a *signal*, never unique, §6.2); a null/empty domain always creates (no signal to match
+   * on). Emits `AccountCreated` only when a new row is actually inserted.
+   */
+  async matchOrCreateWithin(
+    tx: Tx,
+    actor: CrmActor,
+    input: MatchOrCreateAccountInput,
+  ): Promise<MatchOrCreateAccountResult> {
+    const domain = normalizeDomain(input.domain);
+    if (domain) {
+      const existing = await this.accounts.findActiveByDomain(tx, domain);
+      if (existing) {
+        return { accountId: existing.id, created: false };
+      }
+    }
+    const accountId = newId();
+    await this.accounts.insert(tx, {
+      id: accountId,
+      organizationId: actor.organizationId,
+      workspaceId: actor.workspaceId,
+      name: input.name,
+      domain,
+      industry: null,
+      sizeBand: null,
+      address: {},
+      ownerPrincipalId: null,
+      customFields: {},
+      actorPrincipalId: actor.principalId,
+    });
+    await this.outbox.append(tx, {
+      ...this.eventBase(actor, accountId),
+      type: CrmEventType.AccountCreated,
+      payload: { accountId, name: input.name, domain },
+    });
+    return { accountId, created: true };
   }
 
   private async requireById(tx: Tx, id: string): Promise<AccountRow> {

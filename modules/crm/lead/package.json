@@ -14,6 +14,7 @@
     "@agentos/contracts": "workspace:*",
     "@agentos/persistence-kernel": "workspace:*",
     "@agentos/identifier": "workspace:*",
-    "@agentos/result-errors": "workspace:*"
+    "@agentos/result-errors": "workspace:*",
+    "libphonenumber-js": "^1.11.0"
   }
 }

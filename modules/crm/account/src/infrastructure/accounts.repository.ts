@@ -100,6 +100,20 @@ export class AccountsRepository {
       .limit(limit) as Promise<AccountRow[]>;
   }
 
+  /**
+   * The active account whose normalized `domain` matches, if any — the Phase-4 conversion match
+   * signal (RFC §4.C). `domain` must be pre-normalized by the caller; never matches a null domain
+   * (no signal to match on).
+   */
+  async findActiveByDomain(tx: Tx, domain: string): Promise<AccountRow | null> {
+    const [row] = await tx
+      .select(ROW)
+      .from(accounts)
+      .where(and(eq(accounts.domain, domain), isNull(accounts.deletedAt)))
+      .limit(1);
+    return (row as AccountRow | undefined) ?? null;
+  }
+
   async insert(tx: Tx, input: AccountInsert): Promise<void> {
     await tx.insert(accounts).values({
       id: input.id,

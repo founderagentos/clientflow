@@ -43,10 +43,14 @@ export type {
   UpdateAccountFields,
   ArchiveAccountInput,
   ListAccountsInput,
+  MatchOrCreateAccountInput,
+  MatchOrCreateAccountResult,
 } from './application/account.service';
 export type {
   CreateContactInput,
   UpdateContactFields,
   ListContactsInput,
+  MatchOrCreateContactInput,
+  MatchOrCreateContactResult,
 } from './application/contact.service';
-export type { LinkContactInput } from './application/account-contact.service';
+export type { LinkContactInput, LinkWithinResult } from './application/account-contact.service';

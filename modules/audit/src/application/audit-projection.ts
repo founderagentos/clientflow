@@ -3,6 +3,7 @@ import {
   CrmEventType,
   DealEventType,
   IdentityEventType,
+  LeadEventType,
   TenancyEventType,
 } from '@agentos/contracts';
 import type { DeliveredEvent } from '@agentos/message-bus';
@@ -96,6 +97,14 @@ const CLASSIFICATIONS: Record<
   [DealEventType.DealStageChanged]: { action: 'transition', resourceType: 'deal' },
   [DealEventType.DealWon]: { action: 'win', resourceType: 'deal' },
   [DealEventType.DealLost]: { action: 'lose', resourceType: 'deal' },
+  // CRM Core — Lead (RFC-002 §9). `LeadConverted` is the atomic-conversion event; the produced
+  // Account/Contact/Deal each separately record their own `*Created` entries in the same trail.
+  [LeadEventType.LeadCreated]: { action: 'create', resourceType: 'lead' },
+  [LeadEventType.LeadUpdated]: { action: 'update', resourceType: 'lead' },
+  [LeadEventType.LeadStatusChanged]: { action: 'status_change', resourceType: 'lead' },
+  [LeadEventType.LeadAssigned]: { action: 'assign', resourceType: 'lead' },
+  [LeadEventType.LeadsMerged]: { action: 'merge', resourceType: 'lead' },
+  [LeadEventType.LeadConverted]: { action: 'convert', resourceType: 'lead' },
 };
 
 /**

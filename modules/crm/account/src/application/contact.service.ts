@@ -45,6 +45,18 @@ export interface ListContactsInput {
   cursor?: ContactKeysetCursor;
 }
 
+export interface MatchOrCreateContactInput {
+  firstName?: string | null;
+  lastName?: string | null;
+  /** Raw or normalized — re-normalized internally; null/empty means no match signal. */
+  email?: string | null;
+}
+
+export interface MatchOrCreateContactResult {
+  contactId: string;
+  created: boolean;
+}
+
 /**
  * Contact lifecycle within the active org+workspace (RFC-002 §2.2). Holds PII. Every write emits its
  * event atomically. `primary_email_normalized` (a dedup signal, §6.2) is derived from `emails[0]` on
@@ -169,6 +181,47 @@ export class ContactService {
         payload: { contactId: id },
       });
     });
+  }
+
+  /**
+   * Match-or-create dedup (RFC §4.C), tx-taking — no transaction of its own, composed by the
+   * `LeadConversionOrchestrator` inside its single cross-module transaction. Matches by
+   * `primary_email_normalized` (a *signal*, never unique, §6.2); a null/empty email always creates
+   * (no signal to match on). Emits `ContactCreated` only when a new row is actually inserted.
+   */
+  async matchOrCreateWithin(
+    tx: Tx,
+    actor: CrmActor,
+    input: MatchOrCreateContactInput,
+  ): Promise<MatchOrCreateContactResult> {
+    const emailNormalized = normalizeEmail(input.email);
+    if (emailNormalized) {
+      const existing = await this.contacts.findActiveByEmailNormalized(tx, emailNormalized);
+      if (existing) {
+        return { contactId: existing.id, created: false };
+      }
+    }
+    const contactId = newId();
+    await this.contacts.insert(tx, {
+      id: contactId,
+      organizationId: actor.organizationId,
+      workspaceId: actor.workspaceId,
+      firstName: input.firstName ?? null,
+      lastName: input.lastName ?? null,
+      emails: input.email ? [input.email] : [],
+      phones: [],
+      primaryEmailNormalized: emailNormalized,
+      title: null,
+      ownerPrincipalId: null,
+      customFields: {},
+      actorPrincipalId: actor.principalId,
+    });
+    await this.outbox.append(tx, {
+      ...this.eventBase(actor, contactId),
+      type: CrmEventType.ContactCreated,
+      payload: { contactId, accountId: null },
+    });
+    return { contactId, created: true };
   }
 
   private async requireById(tx: Tx, id: string): Promise<ContactRow> {

@@ -159,6 +159,9 @@ importers:
       '@agentos/crm-deal':
         specifier: workspace:*
         version: link:../../modules/crm/deal
+      '@agentos/crm-lead':
+        specifier: workspace:*
+        version: link:../../modules/crm/lead
       '@agentos/event-backbone':
         specifier: workspace:*
         version: link:../../modules/event-backbone
@@ -302,6 +305,9 @@ importers:
       '@agentos/result-errors':
         specifier: workspace:*
         version: link:../../../packages/platform/result-errors
+      libphonenumber-js:
+        specifier: ^1.11.0
+        version: 1.13.7
 
   modules/event-backbone:
     dependencies:
@@ -3983,6 +3989,9 @@ packages:
   levn@0.4.1:
     resolution: {integrity: sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ==}
     engines: {node: '>= 0.8.0'}
+
+  libphonenumber-js@1.13.7:
+    resolution: {integrity: sha512-rvr3HIMdOgzhz1RFGjftji+wjoAFlzhqCNqJOU/MKTZQ8d9NZxAR/tI+0weDicyoucqVR0U1GCniqHJ0f8aM2A==}
 
   light-my-request@6.6.0:
     resolution: {integrity: sha512-CHYbu8RtboSIoVsHZ6Ye4cj4Aw/yg2oAFimlF7mNvfDV192LR7nDiKtSIfCuLT7KokPSTn/9kfVLm5OGN0A28A==}
@@ -9100,6 +9109,8 @@ snapshots:
     dependencies:
       prelude-ls: 1.2.1
       type-check: 0.4.0
+
+  libphonenumber-js@1.13.7: {}
 
   light-my-request@6.6.0:
     dependencies:
