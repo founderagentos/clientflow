@@ -1,4 +1,4 @@
-import { AccessEventType, IdentityEventType, TenancyEventType } from '@agentos/contracts';
+import { AccessEventType, CrmEventType, IdentityEventType, TenancyEventType } from '@agentos/contracts';
 import type { DeliveredEvent } from '@agentos/message-bus';
 
 /** Allowed values of `audit_log_entries.result` (CHECK constraint in the schema). */
@@ -61,6 +61,21 @@ const CLASSIFICATIONS: Record<
   [TenancyEventType.MembershipCreated]: { action: 'create', resourceType: 'membership' },
   [TenancyEventType.MembershipRoleChanged]: { action: 'role_change', resourceType: 'membership' },
   [TenancyEventType.MemberRemoved]: { action: 'remove', resourceType: 'membership' },
+  // CRM Core — Account + Contact (RFC-002 §9). `ContactErased` is a sensitive op and is always
+  // recorded with its acting principal (the trail is what a security review inspects, §8.4).
+  [CrmEventType.AccountCreated]: { action: 'create', resourceType: 'account' },
+  [CrmEventType.AccountUpdated]: { action: 'update', resourceType: 'account' },
+  [CrmEventType.AccountDeleted]: { action: 'delete', resourceType: 'account' },
+  [CrmEventType.ContactCreated]: { action: 'create', resourceType: 'contact' },
+  [CrmEventType.ContactUpdated]: { action: 'update', resourceType: 'contact' },
+  [CrmEventType.ContactDeleted]: { action: 'delete', resourceType: 'contact' },
+  [CrmEventType.ContactErased]: { action: 'erase', resourceType: 'contact' },
+  [CrmEventType.AccountContactLinked]: { action: 'link', resourceType: 'account_contact' },
+  [CrmEventType.AccountContactUnlinked]: { action: 'unlink', resourceType: 'account_contact' },
+  [CrmEventType.AccountPrimaryContactChanged]: {
+    action: 'set_primary',
+    resourceType: 'account_contact',
+  },
 };
 
 /**

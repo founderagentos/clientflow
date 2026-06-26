@@ -153,6 +153,9 @@ importers:
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../contracts
+      '@agentos/crm-account':
+        specifier: workspace:*
+        version: link:../../modules/crm/account
       '@agentos/crm-deal':
         specifier: workspace:*
         version: link:../../modules/crm/deal

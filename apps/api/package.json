@@ -7,6 +7,7 @@
     "@agentos/access": "workspace:*",
     "@agentos/audit": "workspace:*",
     "@agentos/contracts": "workspace:*",
+    "@agentos/crm-account": "workspace:*",
     "@agentos/crm-deal": "workspace:*",
     "@agentos/event-backbone": "workspace:*",
     "@agentos/identifier": "workspace:*",
