@@ -150,6 +150,9 @@ importers:
       '@agentos/audit':
         specifier: workspace:*
         version: link:../../modules/audit
+      '@agentos/authorization':
+        specifier: workspace:*
+        version: link:../../packages/platform/authorization
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../contracts
@@ -236,6 +239,9 @@ importers:
 
   modules/crm/account:
     dependencies:
+      '@agentos/authorization':
+        specifier: workspace:*
+        version: link:../../../packages/platform/authorization
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../../contracts
@@ -281,6 +287,9 @@ importers:
 
   modules/crm/deal:
     dependencies:
+      '@agentos/authorization':
+        specifier: workspace:*
+        version: link:../../../packages/platform/authorization
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../../contracts
@@ -299,6 +308,9 @@ importers:
 
   modules/crm/lead:
     dependencies:
+      '@agentos/authorization':
+        specifier: workspace:*
+        version: link:../../../packages/platform/authorization
       '@agentos/contracts':
         specifier: workspace:*
         version: link:../../../contracts
@@ -380,6 +392,8 @@ importers:
       '@agentos/result-errors':
         specifier: workspace:*
         version: link:../../packages/platform/result-errors
+
+  packages/platform/authorization: {}
 
   packages/platform/identifier:
     dependencies:

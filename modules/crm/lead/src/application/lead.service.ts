@@ -9,6 +9,12 @@ import {
   type Tx,
 } from '@agentos/persistence-kernel';
 import { newId } from '@agentos/identifier';
+import {
+  AUTHORIZATION,
+  authorizeCommand,
+  ownerListFilter,
+  type AuthorizationPort,
+} from '@agentos/authorization';
 import { LeadAggregateType, LeadEventType, LeadStatus } from '@agentos/contracts';
 import {
   LeadsRepository,
@@ -66,19 +72,30 @@ export class LeadService {
     private readonly leads: LeadsRepository,
     @Inject(DATABASE) private readonly db: Database,
     @Inject(OUTBOX) private readonly outbox: OutboxPort,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async get(actor: LeadActor, id: string): Promise<LeadRow> {
-    return withTenantTransaction(this.db, this.scope(actor), (tx) => this.requireLead(tx, id));
+    return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
+      const lead = await this.requireLead(tx, id);
+      await authorizeCommand(this.authz, actor, 'lead.read', {
+        resource: 'lead',
+        ownerPrincipalId: lead.ownerPrincipalId,
+      });
+      return lead;
+    });
   }
 
   async list(actor: LeadActor, input: ListLeadsInput): Promise<LeadRow[]> {
+    await authorizeCommand(this.authz, actor, 'lead.read');
+    const ownerFilter = await ownerListFilter(this.authz, actor, 'lead');
     return withTenantTransaction(this.db, this.scope(actor), (tx) =>
-      this.leads.listByWorkspace(tx, input.limit, input.cursor),
+      this.leads.listByWorkspace(tx, input.limit, input.cursor, ownerFilter),
     );
   }
 
   async create(actor: LeadActor, input: CreateLeadInput): Promise<LeadRow> {
+    await authorizeCommand(this.authz, actor, 'lead.create');
     const leadId = newId();
     const status = input.status ?? LeadStatus.New;
     const emailNormalized = normalizeEmail(input.email);
@@ -96,7 +113,8 @@ export class LeadService {
         emailNormalized,
         phoneE164,
         domain,
-        ownerPrincipalId: input.ownerPrincipalId ?? null,
+        // Default owner to the creator so ownership scoping is meaningful (RFC §8.2).
+        ownerPrincipalId: input.ownerPrincipalId ?? actor.principalId,
         customFields: input.customFields ?? {},
         actorPrincipalId: actor.principalId,
       });
@@ -130,7 +148,11 @@ export class LeadService {
       ...(fields.domain !== undefined ? { domain: normalizeDomain(fields.domain) } : {}),
     };
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
-      await this.requireLead(tx, id);
+      const lead = await this.requireLead(tx, id);
+      await authorizeCommand(this.authz, actor, 'lead.update', {
+        resource: 'lead',
+        ownerPrincipalId: lead.ownerPrincipalId,
+      });
       const changed = await this.leads.update(tx, {
         id,
         expectedVersion,
@@ -154,6 +176,10 @@ export class LeadService {
   ): Promise<LeadRow> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const lead = await this.requireLead(tx, id);
+      await authorizeCommand(this.authz, actor, 'lead.assign', {
+        resource: 'lead',
+        ownerPrincipalId: lead.ownerPrincipalId,
+      });
       await this.leads.assign(tx, {
         id,
         expectedVersion,
@@ -177,6 +203,10 @@ export class LeadService {
   ): Promise<LeadRow> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const existing = await this.requireLead(tx, id);
+      await authorizeCommand(this.authz, actor, 'lead.update', {
+        resource: 'lead',
+        ownerPrincipalId: existing.ownerPrincipalId,
+      });
       assertStatusChange(existing.status as LeadStatus, toStatus, existing.convertedAt);
       await this.leads.changeStatus(tx, {
         id,
@@ -207,6 +237,7 @@ export class LeadService {
     if (survivorId === mergedId) {
       throw new ValidationError('Cannot merge a lead into itself');
     }
+    await authorizeCommand(this.authz, actor, 'lead.merge');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       await this.requireLead(tx, survivorId);
       await this.requireLead(tx, mergedId);

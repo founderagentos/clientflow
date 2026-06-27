@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ValidationError, InternalError } from '@agentos/result-errors';
 import { DATABASE, withTenantTransaction, type Database } from '@agentos/persistence-kernel';
+import { AUTHORIZATION, authorizeCommand, type AuthorizationPort } from '@agentos/authorization';
 import { AccountService, AccountContactService, ContactService, type CrmActor } from '@agentos/crm-account';
 import { DealService } from '@agentos/crm-deal';
 import { LeadService } from '@agentos/crm-lead';
@@ -36,9 +37,12 @@ export class LeadConversionOrchestrator {
     private readonly accountContacts: AccountContactService,
     private readonly deals: DealService,
     @Inject(DATABASE) private readonly db: Database,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async convert(actor: CrmActor, leadId: string): Promise<ConvertLeadResult> {
+    // The composite conversion privilege; the inner *Within writes are covered by it (RFC §8.2).
+    await authorizeCommand(this.authz, actor, 'lead.convert');
     return withTenantTransaction(
       this.db,
       { organizationId: actor.organizationId, workspaceId: actor.workspaceId },

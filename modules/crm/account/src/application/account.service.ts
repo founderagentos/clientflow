@@ -9,6 +9,12 @@ import {
   type Tx,
 } from '@agentos/persistence-kernel';
 import { newId } from '@agentos/identifier';
+import {
+  AUTHORIZATION,
+  authorizeCommand,
+  ownerListFilter,
+  type AuthorizationPort,
+} from '@agentos/authorization';
 import { CrmAggregateType, CrmEventType } from '@agentos/contracts';
 import {
   AccountsRepository,
@@ -77,6 +83,7 @@ export class AccountService {
     private readonly links: AccountContactsRepository,
     @Inject(DATABASE) private readonly db: Database,
     @Inject(OUTBOX) private readonly outbox: OutboxPort,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async get(actor: CrmActor, id: string): Promise<AccountRow> {
@@ -85,17 +92,24 @@ export class AccountService {
       if (!row) {
         throw new NotFoundError('Account not found');
       }
+      await authorizeCommand(this.authz, actor, 'account.read', {
+        resource: 'account',
+        ownerPrincipalId: row.ownerPrincipalId,
+      });
       return row;
     });
   }
 
   async list(actor: CrmActor, input: ListAccountsInput): Promise<AccountRow[]> {
+    await authorizeCommand(this.authz, actor, 'account.read');
+    const ownerFilter = await ownerListFilter(this.authz, actor, 'account');
     return withTenantTransaction(this.db, this.scope(actor), (tx) =>
-      this.accounts.listByWorkspace(tx, input.limit, input.cursor),
+      this.accounts.listByWorkspace(tx, input.limit, input.cursor, ownerFilter),
     );
   }
 
   async create(actor: CrmActor, input: CreateAccountInput): Promise<AccountRow> {
+    await authorizeCommand(this.authz, actor, 'account.create');
     const accountId = newId();
     const domain = normalizeDomain(input.domain);
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
@@ -108,7 +122,8 @@ export class AccountService {
         industry: input.industry ?? null,
         sizeBand: input.sizeBand ?? null,
         address: input.address ?? {},
-        ownerPrincipalId: input.ownerPrincipalId ?? null,
+        // Default owner to the creator so ownership scoping is meaningful (RFC §8.2).
+        ownerPrincipalId: input.ownerPrincipalId ?? actor.principalId,
         customFields: input.customFields ?? {},
         actorPrincipalId: actor.principalId,
       });
@@ -135,6 +150,10 @@ export class AccountService {
       if (!existing) {
         throw new NotFoundError('Account not found');
       }
+      await authorizeCommand(this.authz, actor, 'account.update', {
+        resource: 'account',
+        ownerPrincipalId: existing.ownerPrincipalId,
+      });
       const changed = await this.accounts.update(tx, {
         id,
         expectedVersion,
@@ -157,6 +176,10 @@ export class AccountService {
       if (!existing) {
         throw new NotFoundError('Account not found');
       }
+      await authorizeCommand(this.authz, actor, 'account.delete', {
+        resource: 'account',
+        ownerPrincipalId: existing.ownerPrincipalId,
+      });
       await this.accounts.archive(tx, {
         id: input.id,
         expectedVersion: input.expectedVersion,

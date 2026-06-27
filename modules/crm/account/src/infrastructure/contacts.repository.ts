@@ -88,20 +88,24 @@ export class ContactsRepository {
     tx: Tx,
     limit: number,
     cursor?: ContactKeysetCursor,
+    ownerPrincipalId?: string,
   ): Promise<ContactRow[]> {
-    const where = cursor
-      ? and(
-          isNull(contacts.deletedAt),
-          or(
-            lt(contacts.createdAt, cursor.createdAt),
-            and(eq(contacts.createdAt, cursor.createdAt), lt(contacts.id, cursor.id)),
-          ),
-        )
-      : isNull(contacts.deletedAt);
+    const conditions = [isNull(contacts.deletedAt)];
+    if (ownerPrincipalId) {
+      conditions.push(eq(contacts.ownerPrincipalId, ownerPrincipalId));
+    }
+    if (cursor) {
+      conditions.push(
+        or(
+          lt(contacts.createdAt, cursor.createdAt),
+          and(eq(contacts.createdAt, cursor.createdAt), lt(contacts.id, cursor.id)),
+        )!,
+      );
+    }
     return tx
       .select(ROW)
       .from(contacts)
-      .where(where)
+      .where(and(...conditions))
       .orderBy(desc(contacts.createdAt), desc(contacts.id))
       .limit(limit) as Promise<ContactRow[]>;
   }

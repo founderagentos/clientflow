@@ -5,6 +5,7 @@ import { loggerModuleParams } from '@agentos/observability';
 import { EventBackboneModule } from '@agentos/event-backbone';
 import { OrganizationModule } from '@agentos/organization';
 import { WorkspaceModule } from '@agentos/workspace';
+import { CrmAuthorizationModule } from './crm/crm-authorization.module';
 import { CrmHostModule } from './crm/crm-host.module';
 import { ConfigModule } from './config/config.module';
 import { DatabaseModule } from './persistence/database.module';
@@ -37,6 +38,9 @@ import { OpenApiModule } from './openapi/openapi.module';
     ConfigModule,
     DatabaseModule,
     RedisModule,
+    // Phase 5: the global AUTHORIZATION port binding, registered early so every downstream CRM
+    // module (instantiated later) sees the global token.
+    CrmAuthorizationModule,
     EventBackboneModule,
     IdentityFeature,
     OrganizationModule,

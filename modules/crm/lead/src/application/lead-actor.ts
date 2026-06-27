@@ -10,4 +10,6 @@ export interface LeadActor {
   organizationId: string;
   workspaceId: string;
   correlationId: string;
+  /** Human vs agent — carried for the PDP query + actor attribution (parity, §3.2). Default user. */
+  principalType?: 'user' | 'service_account';
 }

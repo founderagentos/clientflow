@@ -9,6 +9,12 @@ import {
   type Tx,
 } from '@agentos/persistence-kernel';
 import { newId } from '@agentos/identifier';
+import {
+  AUTHORIZATION,
+  authorizeCommand,
+  ownerListFilter,
+  type AuthorizationPort,
+} from '@agentos/authorization';
 import { CrmAggregateType, CrmEventType } from '@agentos/contracts';
 import {
   ContactsRepository,
@@ -71,6 +77,7 @@ export class ContactService {
     private readonly links: AccountContactsRepository,
     @Inject(DATABASE) private readonly db: Database,
     @Inject(OUTBOX) private readonly outbox: OutboxPort,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async get(actor: CrmActor, id: string): Promise<ContactRow> {
@@ -79,17 +86,24 @@ export class ContactService {
       if (!row) {
         throw new NotFoundError('Contact not found');
       }
+      await authorizeCommand(this.authz, actor, 'contact.read', {
+        resource: 'contact',
+        ownerPrincipalId: row.ownerPrincipalId,
+      });
       return row;
     });
   }
 
   async list(actor: CrmActor, input: ListContactsInput): Promise<ContactRow[]> {
+    await authorizeCommand(this.authz, actor, 'contact.read');
+    const ownerFilter = await ownerListFilter(this.authz, actor, 'contact');
     return withTenantTransaction(this.db, this.scope(actor), (tx) =>
-      this.contacts.listByWorkspace(tx, input.limit, input.cursor),
+      this.contacts.listByWorkspace(tx, input.limit, input.cursor, ownerFilter),
     );
   }
 
   async create(actor: CrmActor, input: CreateContactInput): Promise<ContactRow> {
+    await authorizeCommand(this.authz, actor, 'contact.create');
     const contactId = newId();
     const emails = input.emails ?? [];
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
@@ -103,7 +117,7 @@ export class ContactService {
         phones: input.phones ?? [],
         primaryEmailNormalized: normalizeEmail(emails[0]),
         title: input.title ?? null,
-        ownerPrincipalId: input.ownerPrincipalId ?? null,
+        ownerPrincipalId: input.ownerPrincipalId ?? actor.principalId,
         customFields: input.customFields ?? {},
         actorPrincipalId: actor.principalId,
       });
@@ -132,6 +146,10 @@ export class ContactService {
       if (!existing) {
         throw new NotFoundError('Contact not found');
       }
+      await authorizeCommand(this.authz, actor, 'contact.update', {
+        resource: 'contact',
+        ownerPrincipalId: existing.ownerPrincipalId,
+      });
       const changed = await this.contacts.update(tx, {
         id,
         expectedVersion,
@@ -153,6 +171,10 @@ export class ContactService {
       if (!existing) {
         throw new NotFoundError('Contact not found');
       }
+      await authorizeCommand(this.authz, actor, 'contact.delete', {
+        resource: 'contact',
+        ownerPrincipalId: existing.ownerPrincipalId,
+      });
       await this.contacts.archive(tx, { id, expectedVersion, actorPrincipalId: actor.principalId });
       await this.links.softDeleteForContact(tx, id, actor.principalId);
       await this.outbox.append(tx, {
@@ -174,6 +196,8 @@ export class ContactService {
       if (!existing) {
         throw new NotFoundError('Contact not found');
       }
+      // `contact.erase` is a sensitive, manager-gated permission (RFC §8.1) — permission-only.
+      await authorizeCommand(this.authz, actor, 'contact.erase');
       await this.contacts.erase(tx, { id, expectedVersion, actorPrincipalId: actor.principalId });
       await this.outbox.append(tx, {
         ...this.eventBase(actor, id),

@@ -97,20 +97,28 @@ export class DealsRepository {
     return (row as DealRow | undefined) ?? null;
   }
 
-  async listByWorkspace(tx: Tx, limit: number, cursor?: DealKeysetCursor): Promise<DealRow[]> {
-    const where = cursor
-      ? and(
-          isNull(deals.deletedAt),
-          or(
-            lt(deals.createdAt, cursor.createdAt),
-            and(eq(deals.createdAt, cursor.createdAt), lt(deals.id, cursor.id)),
-          ),
-        )
-      : isNull(deals.deletedAt);
+  async listByWorkspace(
+    tx: Tx,
+    limit: number,
+    cursor?: DealKeysetCursor,
+    ownerPrincipalId?: string,
+  ): Promise<DealRow[]> {
+    const conditions = [isNull(deals.deletedAt)];
+    if (ownerPrincipalId) {
+      conditions.push(eq(deals.ownerPrincipalId, ownerPrincipalId));
+    }
+    if (cursor) {
+      conditions.push(
+        or(
+          lt(deals.createdAt, cursor.createdAt),
+          and(eq(deals.createdAt, cursor.createdAt), lt(deals.id, cursor.id)),
+        )!,
+      );
+    }
     return tx
       .select(ROW)
       .from(deals)
-      .where(where)
+      .where(and(...conditions))
       .orderBy(desc(deals.createdAt), desc(deals.id))
       .limit(limit) as Promise<DealRow[]>;
   }

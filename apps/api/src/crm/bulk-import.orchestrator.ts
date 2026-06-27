@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { AUTHORIZATION, authorizeCommand, type AuthorizationPort } from '@agentos/authorization';
 import { LeadImportService, type ImportJobRow, type LeadActor } from '@agentos/crm-lead';
 import { BulkImportQueue } from './bulk-import.queue';
 
@@ -26,9 +27,11 @@ export class BulkImportOrchestrator {
   constructor(
     private readonly leadImport: LeadImportService,
     private readonly queue: BulkImportQueue,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async submit(actor: LeadActor, input: SubmitImportInput): Promise<SubmitImportResult> {
+    await authorizeCommand(this.authz, actor, 'lead.import');
     const { jobId, alreadyExists } = await this.leadImport.createOrGetJob(actor, input.idempotencyKey);
     if (!alreadyExists) {
       await this.queue.enqueue({
@@ -44,6 +47,7 @@ export class BulkImportOrchestrator {
   }
 
   async getJob(actor: LeadActor, jobId: string): Promise<ImportJobRow> {
+    await authorizeCommand(this.authz, actor, 'lead.read');
     return this.leadImport.getJob(actor, jobId);
   }
 }

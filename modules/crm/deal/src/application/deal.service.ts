@@ -9,6 +9,12 @@ import {
   type Tx,
 } from '@agentos/persistence-kernel';
 import { newId } from '@agentos/identifier';
+import {
+  AUTHORIZATION,
+  authorizeCommand,
+  ownerListFilter,
+  type AuthorizationPort,
+} from '@agentos/authorization';
 import { DealAggregateType, DealEventType } from '@agentos/contracts';
 import {
   DealsRepository,
@@ -69,15 +75,25 @@ export class DealService {
     private readonly history: DealStageHistoryRepository,
     @Inject(DATABASE) private readonly db: Database,
     @Inject(OUTBOX) private readonly outbox: OutboxPort,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async get(actor: DealActor, id: string): Promise<DealRow> {
-    return withTenantTransaction(this.db, this.scope(actor), (tx) => this.requireDeal(tx, id));
+    return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
+      const deal = await this.requireDeal(tx, id);
+      await authorizeCommand(this.authz, actor, 'deal.read', {
+        resource: 'deal',
+        ownerPrincipalId: deal.ownerPrincipalId,
+      });
+      return deal;
+    });
   }
 
   async list(actor: DealActor, input: ListDealsInput): Promise<DealRow[]> {
+    await authorizeCommand(this.authz, actor, 'deal.read');
+    const ownerFilter = await ownerListFilter(this.authz, actor, 'deal');
     return withTenantTransaction(this.db, this.scope(actor), (tx) =>
-      this.deals.listByWorkspace(tx, input.limit, input.cursor),
+      this.deals.listByWorkspace(tx, input.limit, input.cursor, ownerFilter),
     );
   }
 
@@ -88,8 +104,12 @@ export class DealService {
   }
 
   async create(actor: DealActor, input: CreateDealInput): Promise<DealRow> {
+    await authorizeCommand(this.authz, actor, 'deal.create');
+    // Default owner to the creator so ownership scoping is meaningful (RFC §8.2). The conversion
+    // path uses createWithin directly (owner left null — a manager-gated composite op).
+    const withOwner = { ...input, ownerPrincipalId: input.ownerPrincipalId ?? actor.principalId };
     return withTenantTransaction(this.db, this.scope(actor), (tx) =>
-      this.createWithin(tx, actor, input),
+      this.createWithin(tx, actor, withOwner),
     );
   }
 
@@ -158,7 +178,11 @@ export class DealService {
     fields: DealUpdatableFields,
   ): Promise<DealRow> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
-      await this.requireDeal(tx, id);
+      const deal = await this.requireDeal(tx, id);
+      await authorizeCommand(this.authz, actor, 'deal.update', {
+        resource: 'deal',
+        ownerPrincipalId: deal.ownerPrincipalId,
+      });
       const changed = await this.deals.update(tx, {
         id,
         expectedVersion,
@@ -182,6 +206,10 @@ export class DealService {
   ): Promise<DealRow> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const deal = await this.requireDeal(tx, id);
+      await authorizeCommand(this.authz, actor, 'deal.assign', {
+        resource: 'deal',
+        ownerPrincipalId: deal.ownerPrincipalId,
+      });
       await this.deals.assign(tx, {
         id,
         expectedVersion,
@@ -199,7 +227,11 @@ export class DealService {
 
   async archive(actor: DealActor, id: string, expectedVersion: number): Promise<void> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
-      await this.requireDeal(tx, id);
+      const deal = await this.requireDeal(tx, id);
+      await authorizeCommand(this.authz, actor, 'deal.delete', {
+        resource: 'deal',
+        ownerPrincipalId: deal.ownerPrincipalId,
+      });
       await this.deals.archive(tx, { id, expectedVersion, actorPrincipalId: actor.principalId });
       await this.outbox.append(tx, {
         ...this.eventBase(actor, id),
@@ -213,6 +245,10 @@ export class DealService {
   async transition(actor: DealActor, input: TransitionDealInput): Promise<DealRow> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const deal = await this.requireDeal(tx, input.dealId);
+      await authorizeCommand(this.authz, actor, 'deal.transition', {
+        resource: 'deal',
+        ownerPrincipalId: deal.ownerPrincipalId,
+      });
       const fromStage = await this.requireStage(tx, deal.stageId);
       const toStage = await this.requireStage(tx, input.toStageId);
       await this.performTransition(tx, actor, {
@@ -230,6 +266,10 @@ export class DealService {
   async close(actor: DealActor, input: CloseDealInput): Promise<DealRow> {
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const deal = await this.requireDeal(tx, input.dealId);
+      await authorizeCommand(this.authz, actor, 'deal.close', {
+        resource: 'deal',
+        ownerPrincipalId: deal.ownerPrincipalId,
+      });
       const fromStage = await this.requireStage(tx, deal.stageId);
       const toStage = await this.stages.findTerminalStage(tx, deal.pipelineId, input.outcome);
       if (!toStage) {

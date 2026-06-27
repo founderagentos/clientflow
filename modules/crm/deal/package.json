@@ -11,6 +11,7 @@
     }
   },
   "dependencies": {
+    "@agentos/authorization": "workspace:*",
     "@agentos/contracts": "workspace:*",
     "@agentos/message-bus": "workspace:*",
     "@agentos/persistence-kernel": "workspace:*",

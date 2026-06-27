@@ -8,6 +8,7 @@ import {
   type OutboxPort,
   type Tx,
 } from '@agentos/persistence-kernel';
+import { AUTHORIZATION, authorizeCommand, type AuthorizationPort } from '@agentos/authorization';
 import { CrmAggregateType, CrmEventType } from '@agentos/contracts';
 import { AccountsRepository } from '../infrastructure/accounts.repository';
 import { ContactsRepository, type ContactRow } from '../infrastructure/contacts.repository';
@@ -39,9 +40,11 @@ export class AccountContactService {
     private readonly links: AccountContactsRepository,
     @Inject(DATABASE) private readonly db: Database,
     @Inject(OUTBOX) private readonly outbox: OutboxPort,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async link(actor: CrmActor, input: LinkContactInput): Promise<void> {
+    await authorizeCommand(this.authz, actor, 'account.update');
     const relationshipRole = input.relationshipRole ?? null;
     const isPrimary = input.isPrimary ?? false;
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
@@ -76,6 +79,7 @@ export class AccountContactService {
   }
 
   async setPrimary(actor: CrmActor, accountId: string, contactId: string): Promise<void> {
+    await authorizeCommand(this.authz, actor, 'account.update');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const link = await this.links.findLink(tx, accountId, contactId);
       if (!link) {
@@ -106,6 +110,7 @@ export class AccountContactService {
   }
 
   async unlink(actor: CrmActor, accountId: string, contactId: string): Promise<void> {
+    await authorizeCommand(this.authz, actor, 'account.update');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const link = await this.links.findLink(tx, accountId, contactId);
       if (!link) {
@@ -165,6 +170,7 @@ export class AccountContactService {
 
   /** The active contacts linked to an account (the read behind `GET /accounts/{id}/contacts`). */
   async listContactsForAccount(actor: CrmActor, accountId: string): Promise<ContactRow[]> {
+    await authorizeCommand(this.authz, actor, 'account.read');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       await this.requireAccount(tx, accountId);
       const linkRows = await this.links.listByAccount(tx, accountId);

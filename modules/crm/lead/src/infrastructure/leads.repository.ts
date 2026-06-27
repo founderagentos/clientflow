@@ -103,21 +103,32 @@ export class LeadsRepository {
     return (row as LeadRow | undefined) ?? null;
   }
 
-  /** Keyset page newest-first on `(created_at, id)` — uses `leads_org_ws_created_id_idx`. */
-  async listByWorkspace(tx: Tx, limit: number, cursor?: LeadKeysetCursor): Promise<LeadRow[]> {
-    const where = cursor
-      ? and(
-          isNull(leads.deletedAt),
-          or(
-            lt(leads.createdAt, cursor.createdAt),
-            and(eq(leads.createdAt, cursor.createdAt), lt(leads.id, cursor.id)),
-          ),
-        )
-      : isNull(leads.deletedAt);
+  /**
+   * Keyset page newest-first on `(created_at, id)` — uses `leads_org_ws_created_id_idx`. When
+   * `ownerPrincipalId` is set the page is narrowed to that owner (RFC §8.2 ownership scoping).
+   */
+  async listByWorkspace(
+    tx: Tx,
+    limit: number,
+    cursor?: LeadKeysetCursor,
+    ownerPrincipalId?: string,
+  ): Promise<LeadRow[]> {
+    const conditions = [isNull(leads.deletedAt)];
+    if (ownerPrincipalId) {
+      conditions.push(eq(leads.ownerPrincipalId, ownerPrincipalId));
+    }
+    if (cursor) {
+      conditions.push(
+        or(
+          lt(leads.createdAt, cursor.createdAt),
+          and(eq(leads.createdAt, cursor.createdAt), lt(leads.id, cursor.id)),
+        )!,
+      );
+    }
     return tx
       .select(ROW)
       .from(leads)
-      .where(where)
+      .where(and(...conditions))
       .orderBy(desc(leads.createdAt), desc(leads.id))
       .limit(limit) as Promise<LeadRow[]>;
   }

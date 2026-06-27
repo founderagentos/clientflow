@@ -77,25 +77,32 @@ export class AccountsRepository {
     return (row as AccountRow | undefined) ?? null;
   }
 
-  /** Keyset page newest-first on `(created_at, id)` — uses `accounts_org_ws_created_id_idx`. */
+  /**
+   * Keyset page newest-first on `(created_at, id)` — uses `accounts_org_ws_created_id_idx`. When
+   * `ownerPrincipalId` is set the page is narrowed to that owner (RFC §8.2 ownership scoping).
+   */
   async listByWorkspace(
     tx: Tx,
     limit: number,
     cursor?: AccountKeysetCursor,
+    ownerPrincipalId?: string,
   ): Promise<AccountRow[]> {
-    const where = cursor
-      ? and(
-          isNull(accounts.deletedAt),
-          or(
-            lt(accounts.createdAt, cursor.createdAt),
-            and(eq(accounts.createdAt, cursor.createdAt), lt(accounts.id, cursor.id)),
-          ),
-        )
-      : isNull(accounts.deletedAt);
+    const conditions = [isNull(accounts.deletedAt)];
+    if (ownerPrincipalId) {
+      conditions.push(eq(accounts.ownerPrincipalId, ownerPrincipalId));
+    }
+    if (cursor) {
+      conditions.push(
+        or(
+          lt(accounts.createdAt, cursor.createdAt),
+          and(eq(accounts.createdAt, cursor.createdAt), lt(accounts.id, cursor.id)),
+        )!,
+      );
+    }
     return tx
       .select(ROW)
       .from(accounts)
-      .where(where)
+      .where(and(...conditions))
       .orderBy(desc(accounts.createdAt), desc(accounts.id))
       .limit(limit) as Promise<AccountRow[]>;
   }

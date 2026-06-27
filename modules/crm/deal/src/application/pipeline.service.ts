@@ -9,6 +9,7 @@ import {
   type Tx,
 } from '@agentos/persistence-kernel';
 import { newId } from '@agentos/identifier';
+import { AUTHORIZATION, authorizeCommand, type AuthorizationPort } from '@agentos/authorization';
 import { DealAggregateType, DealEventType } from '@agentos/contracts';
 import { PipelinesRepository, type PipelineRow } from '../infrastructure/pipelines.repository';
 import { PipelineStagesRepository, type StageRow } from '../infrastructure/pipeline-stages.repository';
@@ -56,13 +57,16 @@ export class PipelineService {
     private readonly deals: DealsRepository,
     @Inject(DATABASE) private readonly db: Database,
     @Inject(OUTBOX) private readonly outbox: OutboxPort,
+    @Inject(AUTHORIZATION) private readonly authz: AuthorizationPort,
   ) {}
 
   async list(actor: DealActor): Promise<PipelineRow[]> {
+    await authorizeCommand(this.authz, actor, 'pipeline.read');
     return withTenantTransaction(this.db, this.scope(actor), (tx) => this.pipelines.list(tx));
   }
 
   async create(actor: DealActor, input: CreatePipelineInput): Promise<PipelineRow> {
+    await authorizeCommand(this.authz, actor, 'pipeline.manage');
     const pipelineId = newId();
     const isDefault = input.isDefault ?? false;
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
@@ -106,6 +110,7 @@ export class PipelineService {
     expectedVersion: number,
     fields: { name?: string; isDefault?: boolean },
   ): Promise<PipelineRow> {
+    await authorizeCommand(this.authz, actor, 'pipeline.manage');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const existing = await this.pipelines.findById(tx, id);
       if (!existing) {
@@ -130,6 +135,7 @@ export class PipelineService {
   }
 
   async getBoard(actor: DealActor, pipelineId: string): Promise<BoardView> {
+    await authorizeCommand(this.authz, actor, 'pipeline.read');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const pipeline = await this.pipelines.findById(tx, pipelineId);
       if (!pipeline) {
@@ -154,6 +160,7 @@ export class PipelineService {
   }
 
   async addStage(actor: DealActor, pipelineId: string, input: AddStageInput): Promise<StageRow> {
+    await authorizeCommand(this.authz, actor, 'pipeline.manage');
     const stageId = newId();
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       if (!(await this.pipelines.findById(tx, pipelineId))) {
@@ -191,6 +198,7 @@ export class PipelineService {
     expectedVersion: number,
     fields: { name?: string; probability?: string; category?: 'open' | 'won' | 'lost' },
   ): Promise<StageRow> {
+    await authorizeCommand(this.authz, actor, 'pipeline.manage');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       const existing = await this.stages.findById(tx, stageId);
       if (!existing) {
@@ -220,6 +228,7 @@ export class PipelineService {
     pipelineId: string,
     stageIdsInOrder: string[],
   ): Promise<void> {
+    await authorizeCommand(this.authz, actor, 'pipeline.manage');
     return withTenantTransaction(this.db, this.scope(actor), async (tx) => {
       if (!(await this.pipelines.findById(tx, pipelineId))) {
         throw new NotFoundError('Pipeline not found');
