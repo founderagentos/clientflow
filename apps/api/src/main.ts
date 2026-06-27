@@ -26,6 +26,11 @@ async function bootstrap(): Promise<void> {
   // Future seams added in their phases: authN, rate-limit, tenant-context resolution, idempotency.
   const fastify = app.getHttpAdapter().getInstance();
   await fastify.register(fastifyCookie);
+  // Bulk lead import (RFC-002 §7 `POST /imports`) accepts a raw CSV body — teach Fastify to read
+  // `text/csv` as a string (the global body-size limit still applies; no multipart dependency).
+  fastify.addContentTypeParser('text/csv', { parseAs: 'string' }, (_request, body, done) => {
+    done(null, body);
+  });
   fastify.addHook('onRequest', (request, reply, done) => {
     const correlationId = (request.headers['x-correlation-id'] as string | undefined) ?? randomUUID();
     void reply.header('x-correlation-id', correlationId);

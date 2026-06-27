@@ -20,6 +20,7 @@ import {
 } from '../tenancy/tenancy.dto';
 import { auditQuerySchema } from '../audit/audit.dto';
 import { registerBodySchema } from '../onboarding/register.dto';
+import { crmRouteDescriptors } from '../crm/crm.routes';
 
 /**
  * The complete HTTP route registry (CLAUDE.md §6). Reuses each route's existing Zod DTO so the
@@ -340,5 +341,6 @@ export const API_ROUTES: RouteDescriptor[] = [
   ...permissionRoutes,
   ...serviceAccountRoutes,
   ...auditRoutes,
+  ...crmRouteDescriptors,
   ...healthRoutes,
 ];
